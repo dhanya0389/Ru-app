@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default theme (Earth) — overridden by JS when user picks a palette */
+:root {
+  --ruhi-cream: #FFF8F0;
+  --ruhi-warm: #F5E6D3;
+  --ruhi-rose: #E8B4B8;
+  --ruhi-sage: #A8C5A0;
+  --ruhi-earth: #8B7355;
+  --ruhi-deep: #4A3728;
+  --ruhi-gold: #D4A574;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--ruhi-cream);
+  color: var(--ruhi-deep);
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Lotus watermark image */
+.ruhi-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.ruhi-bg::before {
+  content: '';
+  position: fixed;
+  top: 58%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 750px;
+  height: 750px;
+  opacity: 0.035;
+  background-image: url('/ruhi-watermark.png');
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Smooth screen transitions */
+.screen-enter {
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Swipe card transitions */
+.card-enter {
+  animation: cardSlideIn 0.35s ease-out;
+}
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px) rotateY(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+}
+
+/* Cascade card stack */
+.card-stack {
+  perspective: 800px;
+}
+
+.card-cascade {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Voice button pulse */
+.voice-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.8; }
+}
+
+/* Full-screen card expansion */
+.fullscreen-card-enter {
+  animation: cardExpand 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes cardExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Cascade card swipe animations */
+.cascade-enter-left {
+  animation: cascadeFromRight 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cascade-enter-right {
+  animation: cascadeFromLeft 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cascadeFromRight {
+  from {
+    opacity: 0.3;
+    transform: translateX(80px) rotateY(-12deg) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0) scale(1);
+  }
+}
+
+@keyframes cascadeFromLeft {
+  from {
+    opacity: 0.3;
+    transform: translateX(-80px) rotateY(12deg) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0) scale(1);
+  }
+}
+
+/* Theme color transition on all elements */
+*, *::before, *::after {
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
