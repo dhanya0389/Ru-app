@@ -8,9 +8,26 @@
   --ruhi-warm: #F5E6D3;
   --ruhi-rose: #E8B4B8;
   --ruhi-sage: #A8C5A0;
-  --ruhi-earth: #8B7355;
+  --ruhi-earth: #735D42; /* 4.5:1 on cream — see themes.js */
   --ruhi-deep: #4A3728;
   --ruhi-gold: #D4A574;
+}
+
+/* Visible focus for keyboard users across all interactive controls */
+:focus-visible {
+  outline: 2px solid var(--ruhi-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html, body {

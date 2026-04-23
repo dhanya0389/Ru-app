@@ -6,7 +6,7 @@ export default function Landing({ onStart }) {
       {/* Soft glow behind title */}
       <div className="absolute top-1/3 w-64 h-64 bg-ruhi-rose/20 rounded-full blur-3xl" />
 
-      <p className="text-sm tracking-widest text-ruhi-earth/50 uppercase mb-4 screen-enter">
+      <p className="text-sm tracking-widest text-ruhi-earth uppercase mb-4 screen-enter">
         a personal health system
       </p>
       <h1 className="font-display text-6xl text-ruhi-deep mb-6 screen-enter" style={{ animationDelay: '0.1s' }}>
@@ -15,7 +15,7 @@ export default function Landing({ onStart }) {
       <p className="text-xl text-ruhi-earth mb-3 screen-enter" style={{ animationDelay: '0.2s' }}>
         Your body already knows what it needs.
       </p>
-      <p className="text-ruhi-earth/60 mb-12 max-w-sm leading-relaxed screen-enter" style={{ animationDelay: '0.3s' }}>
+      <p className="text-ruhi-earth mb-12 max-w-sm leading-relaxed screen-enter" style={{ animationDelay: '0.3s' }}>
         Build a system around your cycle, your energy, and your kitchen —
         so you never have to guess what to eat, how to move, or why you feel
         the way you do.

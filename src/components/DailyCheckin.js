@@ -63,25 +63,25 @@ export default function DailyCheckin({ onEditProfile }) {
       {/* Edit profile — goes back to onboarding with data pre-filled */}
       <button
         onClick={onEditProfile}
-        className="self-end text-xs text-ruhi-earth/40 hover:text-ruhi-earth/70 transition-colors mb-4"
+        className="self-end text-xs text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4"
       >
         Edit profile
       </button>
 
       {/* Phase indicator */}
       {phaseLabel && (
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ruhi-warm/60 text-sm text-ruhi-earth/70 mb-8 screen-enter">
-          <span className="w-2 h-2 rounded-full bg-ruhi-sage" />
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ruhi-warm/60 text-sm text-ruhi-earth mb-8 screen-enter">
+          <span aria-hidden="true" className="w-2 h-2 rounded-full bg-ruhi-sage" />
           {phaseLabel}
         </div>
       )}
 
       <h2 className="font-display text-2xl text-ruhi-deep mb-1 screen-enter">What's tonight?</h2>
-      <p className="text-ruhi-earth/60 mb-8 screen-enter">Check in, and I'll build your evening.</p>
+      <p className="text-ruhi-earth mb-8 screen-enter">Check in, and I'll build your evening.</p>
 
       {/* Energy — phase-aware language */}
       <div className="w-full mb-8 screen-enter">
-        <p className="text-sm text-ruhi-earth/70 mb-2">
+        <p id="energy-label" className="text-sm text-ruhi-earth mb-2">
           {phase
             ? `Based on your ${phase.name.toLowerCase()} phase, you're probably `
             : "Right now you're probably "}
@@ -94,30 +94,34 @@ export default function DailyCheckin({ onEditProfile }) {
           max="5"
           value={energy}
           onChange={e => setEnergy(Number(e.target.value))}
+          aria-labelledby="energy-label"
+          aria-valuetext={ENERGY_LABELS[energy]}
           className="w-full accent-ruhi-deep"
         />
-        <div className="flex justify-between text-xs text-ruhi-earth/40 mt-1">
+        <div aria-hidden="true" className="flex justify-between text-xs text-ruhi-earth mt-1">
           <span>Running on empty</span>
           <span>On fire</span>
         </div>
       </div>
 
       {/* Cooking mood */}
-      <div className="w-full mb-8 screen-enter">
-        <p className="text-sm text-ruhi-earth/70 mb-3">Tonight feels like...</p>
+      <div className="w-full mb-8 screen-enter" role="radiogroup" aria-label="Cooking mood">
+        <p className="text-sm text-ruhi-earth mb-3">Tonight feels like...</p>
         <div className="flex flex-col gap-2">
           {COOKING_MOODS.map(m => (
             <button
               key={m.key}
               onClick={() => setCookingMood(m.key)}
+              role="radio"
+              aria-checked={cookingMood === m.key}
               className={`flex justify-between items-center px-4 py-3 rounded-xl border-2 transition-all duration-200
                 ${cookingMood === m.key
                   ? 'border-ruhi-deep bg-ruhi-deep/5 shadow-sm'
-                  : 'border-ruhi-earth/15 hover:border-ruhi-earth/40'
+                  : 'border-ruhi-earth/40 hover:border-ruhi-deep'
                 }`}
             >
               <span className="text-ruhi-deep">{m.label}</span>
-              <span className="text-xs text-ruhi-earth/50">{m.time}</span>
+              <span className="text-xs text-ruhi-earth">{m.time}</span>
             </button>
           ))}
         </div>
@@ -125,12 +129,13 @@ export default function DailyCheckin({ onEditProfile }) {
 
       {/* Kitchen input — voice + text */}
       <div className="w-full mb-10 screen-enter">
-        <p className="text-sm text-ruhi-earth/70 mb-2">What's in your kitchen?</p>
+        <p className="text-sm text-ruhi-earth mb-2">What's in your kitchen?</p>
         <VoiceInput
+          label="What's in your kitchen"
           placeholder="e.g. chickpeas, spinach, rice, chicken thighs..."
           onResult={(text) => setKitchen(text)}
         />
-        <p className="text-xs text-ruhi-earth/40 mt-1">Type, use voice, or leave blank — I'll work with what I know.</p>
+        <p className="text-xs text-ruhi-earth mt-1">Type, use voice, or leave blank — I'll work with what I know.</p>
       </div>
 
       {/* CTA */}

@@ -2,9 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-export default function VoiceInput({ onResult, placeholder = 'Tap the mic or type...', initialValue = '' }) {
+const ERROR_MESSAGES = {
+  'not-allowed': 'Mic access blocked. Allow microphone in your browser/system settings, then try again.',
+  'service-not-allowed': 'Mic access blocked. Allow microphone in your browser/system settings, then try again.',
+  'audio-capture': 'No microphone found. Check that one is connected.',
+  'network': 'Voice input needs a network connection. Check your connection.',
+  'aborted': null, // user-initiated, don't show
+}
+
+export default function VoiceInput({ onResult, placeholder = 'Tap the mic or type...', initialValue = '', label = 'Input field' }) {
   const [listening, setListening] = useState(false)
   const [text, setText] = useState(initialValue)
+  const [errorMsg, setErrorMsg] = useState(null)
   const recognitionRef = useRef(null)
 
   useEffect(() => {
@@ -21,8 +30,9 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
   }, [])
 
   function startListening() {
+    setErrorMsg(null)
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice input is not supported in this browser. Please type instead.')
+      setErrorMsg('Voice input is not supported in this browser. Please type instead.')
       return
     }
 
@@ -56,18 +66,22 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
     recognition.onerror = (event) => {
       // Don't stop for 'no-speech' — just keep listening
       if (event.error === 'no-speech') return
-      console.warn('Speech recognition error:', event.error)
+      const message = event.error in ERROR_MESSAGES
+        ? ERROR_MESSAGES[event.error]
+        : `Voice input failed (${event.error}). Please type instead.`
+      if (message) setErrorMsg(message)
+      recognitionRef.current = null
       setListening(false)
     }
 
     recognition.onend = () => {
-      // If we're still supposed to be listening, restart
-      // (browser can kill the session after silence)
-      if (recognitionRef.current && listening) {
+      // If the session was killed by silence but the user still wants to listen, restart.
+      // Use a ref read to avoid stale closure — recognitionRef is only set while active.
+      if (recognitionRef.current === recognition) {
         try {
           recognition.start()
         } catch (e) {
-          // Already started or aborted — that's fine
+          recognitionRef.current = null
           setListening(false)
         }
       }
@@ -80,6 +94,8 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
       recognition.start()
     } catch (e) {
       console.warn('Could not start speech recognition:', e)
+      setErrorMsg('Could not start voice input. Please type instead.')
+      recognitionRef.current = null
       setListening(false)
     }
   }
@@ -102,21 +118,23 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
       <div className="relative">
         <textarea
           placeholder={placeholder}
+          aria-label={label}
           value={text}
           onChange={handleTextChange}
-          className="w-full p-3 pr-14 rounded-xl bg-white/60 border border-ruhi-earth/20
-                     focus:border-ruhi-deep focus:outline-none resize-none h-20"
+          className="w-full p-3 pr-16 rounded-xl bg-white/60 border border-ruhi-earth/40
+                     focus:border-ruhi-deep resize-none h-20"
         />
         <button
           onClick={listening ? stopListening : startListening}
-          className={`absolute right-3 top-3 w-10 h-10 rounded-full flex items-center justify-center
+          aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+          aria-pressed={listening}
+          className={`absolute right-2 top-2 w-11 h-11 rounded-full flex items-center justify-center
                       transition-all ${listening
-                        ? 'bg-ruhi-rose text-white voice-pulse'
-                        : 'bg-ruhi-warm text-ruhi-earth hover:bg-ruhi-earth hover:text-ruhi-cream'
+                        ? 'bg-ruhi-deep text-ruhi-cream voice-pulse'
+                        : 'bg-ruhi-warm text-ruhi-deep hover:bg-ruhi-earth hover:text-ruhi-cream'
                       }`}
-          title={listening ? 'Tap to stop' : 'Tap to speak'}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" y1="19" x2="12" y2="23" />
@@ -124,8 +142,11 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
           </svg>
         </button>
       </div>
-      {listening && (
-        <p className="text-xs text-ruhi-rose mt-1 animate-pulse">Listening — tap mic again when done</p>
+      {listening && !errorMsg && (
+        <p role="status" className="text-xs text-ruhi-deep mt-1 animate-pulse">Listening — tap mic again when done</p>
+      )}
+      {errorMsg && (
+        <p role="alert" className="text-xs text-ruhi-deep mt-1 bg-ruhi-rose/30 rounded-md px-2 py-1">{errorMsg}</p>
       )}
     </div>
   )

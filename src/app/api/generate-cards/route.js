@@ -1,8 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic()
+const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
 export async function POST(request) {
+  if (!client) {
+    return Response.json(
+      { error: 'missing_api_key', message: 'ANTHROPIC_API_KEY not set. See .env.local.example.' },
+      { status: 503 }
+    )
+  }
+
   const { profile, phase, energy, cookingMood, kitchen, excludeMeal } = await request.json()
 
   const cookTimeMap = {
@@ -91,7 +98,14 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
     })
 
     const text = message.content[0].text
-    const cards = JSON.parse(text)
+    // Claude occasionally wraps JSON in ```json ... ``` code fences despite the prompt.
+    // Extract the first {...} block before parsing so either form works.
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) {
+      console.error('Claude returned no JSON object. Raw text:', text.slice(0, 200))
+      return Response.json({ error: 'Failed to parse cards' }, { status: 500 })
+    }
+    const cards = JSON.parse(match[0])
     return Response.json(cards)
   } catch (error) {
     console.error('Claude API error:', error)
