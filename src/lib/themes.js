@@ -1,5 +1,7 @@
 // Color palettes — user picks one, app recolors everywhere
 
+// Earth values are tuned so that foreground text meets WCAG AA (≥4.5:1) on cream.
+// When changing a theme, verify contrast before shipping.
 export const THEMES = {
   earth: {
     label: 'Earth',
@@ -8,7 +10,7 @@ export const THEMES = {
     warm: '#F5E6D3',
     rose: '#E8B4B8',
     sage: '#A8C5A0',
-    earth: '#8B7355',
+    earth: '#735D42', // darkened from #8B7355 for AA contrast
     deep: '#4A3728',
     gold: '#D4A574',
   },
@@ -41,7 +43,7 @@ export const THEMES = {
     warm: '#E8F5E9',
     rose: '#A5D6A7',
     sage: '#81C784',
-    earth: '#43A047',
+    earth: '#2E7D32', // darkened from #43A047 for AA contrast
     deep: '#1B5E20',
     gold: '#66BB6A',
   },
@@ -52,7 +54,7 @@ export const THEMES = {
     warm: '#FDE8EF',
     rose: '#F0A8C4',
     sage: '#B8D8D0',
-    earth: '#9C8AA5',
+    earth: '#6D5A7A', // darkened from #9C8AA5 for AA contrast
     deep: '#5D4A66',
     gold: '#EDAE98',
   },

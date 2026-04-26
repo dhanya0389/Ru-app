@@ -131,10 +131,11 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
           type="number"
           inputMode="numeric"
           placeholder="e.g. 32"
+          aria-label="Your age"
           value={profile.age}
           onChange={e => update('age', e.target.value)}
-          className="w-24 text-center text-2xl border-b-2 border-ruhi-earth/30 bg-transparent
-                     focus:border-ruhi-deep focus:outline-none py-2 mx-auto block"
+          className="w-24 text-center text-2xl border-b-2 border-ruhi-earth/40 bg-transparent
+                     focus:border-ruhi-deep py-2 mx-auto block"
         />
       </Screen>
     ),
@@ -175,11 +176,12 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     () => (
       <Screen title="Anything your body says no to?" subtitle="Allergies, intolerances, foods you avoid" onNext={next} onBack={back} canProceed>
         <VoiceInput
+          label="Foods to avoid"
           placeholder="e.g. gluten, dairy, shellfish..."
           initialValue={profile.avoidances}
           onResult={(text) => update('avoidances', text)}
         />
-        <button onClick={next} className="text-sm text-ruhi-earth/50 mt-3 underline">
+        <button onClick={next} className="text-sm text-ruhi-earth mt-3 underline">
           Skip — no restrictions
         </button>
       </Screen>
@@ -211,7 +213,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
             />
           ))}
         </div>
-        <p className="text-sm text-ruhi-earth/70 mb-2">How often?</p>
+        <p className="text-sm text-ruhi-earth mb-2">How often?</p>
         <div className="flex flex-wrap gap-2 justify-center">
           {['1–2x/week', '3–4x/week', '5+/week', 'Still figuring it out'].map(f => (
             <OptionButton key={f} label={f} selected={profile.movementFrequency === f} onTap={() => update('movementFrequency', f)} small
@@ -256,15 +258,16 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     // 8: Cycle details (only shown if tracksCycle === true)
     () => (
       <Screen title="A little more about your cycle" onNext={next} onBack={back} canProceed={profile.lastPeriodStart !== ''}>
-        <label className="block text-sm text-ruhi-earth/70 mb-1">When did your last period start?</label>
+        <label htmlFor="lastPeriodStart" className="block text-sm text-ruhi-earth mb-1">When did your last period start?</label>
         <input
+          id="lastPeriodStart"
           type="date"
           value={profile.lastPeriodStart}
           onChange={e => update('lastPeriodStart', e.target.value)}
-          className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/20
-                     focus:border-ruhi-deep focus:outline-none mb-6"
+          className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
+                     focus:border-ruhi-deep mb-6"
         />
-        <p className="text-sm text-ruhi-earth/70 mb-2">Typical cycle length?</p>
+        <p className="text-sm text-ruhi-earth mb-2">Typical cycle length?</p>
         <div className="flex flex-wrap gap-2 justify-center">
           {CYCLE_LENGTHS.map(cl => (
             <OptionButton key={cl} label={cl} selected={profile.cycleLength === cl} onTap={() => update('cycleLength', cl)} small />
@@ -274,18 +277,23 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     ),
   ]
 
-  const CurrentScreen = screens[step]
-
   return (
     <div className="ruhi-bg min-h-screen flex flex-col relative z-10">
       {/* Progress bar */}
-      <div className="w-full h-1 bg-ruhi-warm">
+      <div
+        className="w-full h-1 bg-ruhi-warm"
+        role="progressbar"
+        aria-valuenow={step + 1}
+        aria-valuemin={1}
+        aria-valuemax={screens.length}
+        aria-label={`Step ${step + 1} of ${screens.length}`}
+      >
         <div
           className="h-full bg-ruhi-deep transition-all duration-500 ease-out"
           style={{ width: `${((step + 1) / screens.length) * 100}%` }}
         />
       </div>
-      <CurrentScreen />
+      {screens[step]()}
     </div>
   )
 }
@@ -301,12 +309,12 @@ function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel
       {title && !greeting && (
         <h2 className="font-display text-2xl text-ruhi-deep mb-2 text-center">{title}</h2>
       )}
-      {subtitle && <p className="text-ruhi-earth/70 mb-8 text-center leading-relaxed max-w-xs">{subtitle}</p>}
+      {subtitle && <p className="text-ruhi-earth mb-8 text-center leading-relaxed max-w-xs">{subtitle}</p>}
       {!subtitle && <div className="mb-8" />}
       <div className="w-full mb-10">{children}</div>
       <div className="flex gap-4 w-full">
         {showBack && onBack && (
-          <button onClick={onBack} className="flex-1 py-3 rounded-full border border-ruhi-earth/30 text-ruhi-earth
+          <button onClick={onBack} className="flex-1 py-3 rounded-full border border-ruhi-earth/40 text-ruhi-earth
                                                hover:bg-ruhi-warm/50 transition-colors">
             Back
           </button>
@@ -317,7 +325,7 @@ function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel
           className={`flex-1 py-3 rounded-full text-ruhi-cream transition-all duration-300
             ${canProceed
               ? 'bg-ruhi-deep hover:bg-ruhi-earth hover:scale-[1.02] shadow-md shadow-ruhi-deep/15'
-              : 'bg-ruhi-earth/30 cursor-not-allowed'}`}
+              : 'bg-ruhi-earth/50 cursor-not-allowed'}`}
         >
           {nextLabel}
         </button>
@@ -330,13 +338,14 @@ function OptionButton({ label, selected, onTap, small = false, highlight = false
   return (
     <button
       onClick={onTap}
+      aria-pressed={selected}
       className={`rounded-full border-2 transition-all duration-200
         ${small ? 'px-4 py-2 text-sm' : 'px-6 py-3'}
         ${selected
           ? 'border-ruhi-deep bg-ruhi-deep text-ruhi-cream scale-[1.03] shadow-md'
           : highlight
-            ? 'border-ruhi-sage/50 text-ruhi-sage hover:border-ruhi-sage bg-ruhi-sage/5'
-            : 'border-ruhi-earth/20 text-ruhi-earth hover:border-ruhi-earth/50 hover:bg-white/40'
+            ? 'border-ruhi-sage text-ruhi-deep hover:border-ruhi-deep bg-ruhi-sage/20'
+            : 'border-ruhi-earth/40 text-ruhi-earth hover:border-ruhi-earth hover:bg-white/40'
         }`}
     >
       {label}
