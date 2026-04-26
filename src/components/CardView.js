@@ -1,7 +1,25 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { phaseInfo } from '@/lib/phases'
+
+// Rotating tidbits shown while the API call is in flight. Phase-aware so
+// luteal users get luteal-flavored notes, etc. The first item is always the
+// phase's mindset (most relevant); the rest are general embodied-cycle tips.
+const GENERAL_TIPS = [
+  'Vegetables first, protein and fat second, carbs last — your blood sugar will thank you.',
+  'Pair fruit with protein or fat. Skip the fruit-only snack.',
+  'Sweet potato deserves to be steamed, not roasted.',
+  'Turmeric works best with a pinch of black pepper.',
+  'Magnesium-rich foods (dark leafy greens, pumpkin seeds) ease luteal-phase tension.',
+  'Fermented foods help the gut work better — even a spoonful counts.',
+  'Hydrate before caffeine. The slump is often dehydration in disguise.',
+]
+
+function tipsForPhase(phase) {
+  const phaseTip = phase ? phaseInfo[phase.name]?.mindset : null
+  return phaseTip ? [phaseTip, ...GENERAL_TIPS] : GENERAL_TIPS
+}
 
 // ── Fallback data (used when API key not connected) ─────────────────
 
@@ -76,8 +94,6 @@ const FALLBACK_ENERGY = {
   tip: 'Put your phone in another room for the next 30 minutes. See what your mind does with the quiet.',
 }
 
-const CARD_LABELS = ['Meal', 'Movement', 'Energy & Mindset']
-
 // Minutes the user "has" for each cooking mood — used to pick a fallback meal that fits.
 const COOKING_MOOD_MINUTES = { quick: 15, medium: 30, therapy: 45 }
 
@@ -98,13 +114,9 @@ function pickFallbackMeal(cookingMood, excludeTitle) {
 
 export default function CardView({ profile, phase, energy, cookingMood, kitchen, onBack }) {
   const [cards, setCards] = useState(null)
-  const [activeIndex, setActiveIndex] = useState(0)
   const [expandedCard, setExpandedCard] = useState(null) // null or 'meal' | 'movement' | 'energy'
   const [loading, setLoading] = useState(true)
   const [isFallback, setIsFallback] = useState(false)
-  const [swipeDir, setSwipeDir] = useState(null)
-  const touchStartX = useRef(0)
-  const touchStartY = useRef(0)
 
   useEffect(() => {
     generateCards()
@@ -157,35 +169,6 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
     setLoading(false)
   }
 
-  function goToCard(index) {
-    if (index === activeIndex) return
-    setSwipeDir(index > activeIndex ? 'left' : 'right')
-    setActiveIndex(index)
-    setTimeout(() => setSwipeDir(null), 400)
-  }
-
-  function nextCard() {
-    if (activeIndex < 2) goToCard(activeIndex + 1)
-  }
-
-  function prevCard() {
-    if (activeIndex > 0) goToCard(activeIndex - 1)
-  }
-
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-  }
-
-  function handleTouchEnd(e) {
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current
-    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX < 0) nextCard()
-      else prevCard()
-    }
-  }
-
   // Expand a card to full screen
   function expandCard(type) {
     setExpandedCard(type)
@@ -196,14 +179,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
   }
 
   if (loading) {
-    return (
-      <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
-        <div role="status" aria-live="polite" className="flex flex-col items-center gap-4">
-          <div aria-hidden="true" className="w-12 h-12 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
-          <p className="font-display text-xl text-ruhi-deep animate-pulse">Ruhi is thinking...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState phase={phase} />
   }
 
   const cardDataList = [
@@ -241,14 +217,9 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
     )
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'ArrowRight') nextCard()
-    else if (e.key === 'ArrowLeft') prevCard()
-  }
-
-  // ── Card stack view ─────────────────────────────────────────────
+  // ── Three-card view (all visible, each tappable to expand) ──────
   return (
-    <div className="ruhi-bg min-h-screen flex flex-col px-6 py-8 max-w-md mx-auto relative z-10">
+    <div className="ruhi-bg min-h-screen flex flex-col px-6 py-6 max-w-md mx-auto relative z-10">
       {/* Header */}
       <button onClick={onBack} className="text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4 self-start">
         <span aria-hidden="true">←</span> Adjust check-in
@@ -262,153 +233,102 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
       )}
 
       {isFallback && (
-        <p role="status" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-4 self-center max-w-xs text-center">
+        <p role="status" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-3 self-center max-w-xs text-center">
           Showing sample cards — personalized meals need an ANTHROPIC_API_KEY in <code>.env.local</code>.
         </p>
       )}
 
-      {/* Card stack area */}
-      <div
-        className="flex-1 relative"
-        style={{ perspective: '1000px' }}
+      {/* Three-card column — all visible at once. Tap any to expand. */}
+      <section
         role="region"
-        aria-label="Daily cards"
-        aria-roledescription="carousel"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        aria-label="Tonight's cards"
+        className="flex-1 flex flex-col gap-4 mt-2"
       >
-        {cardDataList.map((card, i) => {
-          const offset = i - activeIndex
-          const isActive = offset === 0
-          const isBehind = offset > 0
-          const isGone = offset < 0
-
+        {cardDataList.map((card) => {
+          const cardLabel = ['meal','movement','energy'].includes(card.type)
+            ? `${card.type} card`
+            : 'card'
           return (
-            <div
+            <button
               key={card.type}
-              className="absolute inset-0 transition-all duration-500 ease-out"
-              style={{
-                transform: isActive
-                  ? 'translateY(0) scale(1) rotateY(0)'
-                  : isBehind
-                    ? `translateY(${offset * 24}px) scale(${1 - offset * 0.05}) rotateY(0)`
-                    : `translateX(${offset * 120}px) scale(0.9) rotateY(${offset * 8}deg)`,
-                opacity: isGone ? 0 : isBehind ? Math.max(0.3, 1 - offset * 0.3) : 1,
-                zIndex: 3 - Math.abs(offset),
-                pointerEvents: isActive ? 'auto' : 'none',
-                filter: isBehind ? `blur(${offset}px)` : 'none',
-              }}
+              type="button"
+              aria-label={`Open ${cardLabel}`}
+              onClick={() => expandCard(card.type)}
+              className="screen-enter block w-full text-left rounded-2xl border border-white/60 shadow-md
+                         backdrop-blur-sm overflow-hidden bg-white/70
+                         transition-all duration-300 hover:scale-[1.015] hover:shadow-lg
+                         focus:outline-none"
             >
-              <div
-                className={`h-full rounded-2xl border border-white/50 shadow-lg backdrop-blur-sm overflow-hidden cursor-pointer
-                            ${isActive && swipeDir === 'left' ? 'cascade-enter-left' : ''}
-                            ${isActive && swipeDir === 'right' ? 'cascade-enter-right' : ''}`}
-                onClick={() => isActive && expandCard(card.type)}
-              >
-                {card.type === 'meal' && (
-                  <MealCardPreview meal={card.data} />
-                )}
-                {card.type === 'movement' && (
-                  <MovementCardPreview movement={card.data} />
-                )}
-                {card.type === 'energy' && (
-                  <EnergyCardPreview energy={card.data} />
-                )}
-              </div>
-            </div>
+              {card.type === 'meal' && <MealCardPreview meal={card.data} />}
+              {card.type === 'movement' && <MovementCardPreview movement={card.data} />}
+              {card.type === 'energy' && <EnergyCardPreview energy={card.data} />}
+            </button>
           )
         })}
-      </div>
+      </section>
 
-      {/* Card indicator dots + label */}
-      <div className="flex flex-col items-center mt-6 gap-2">
-        <p className="text-sm text-ruhi-earth" aria-live="polite">{CARD_LABELS[activeIndex]}</p>
-        <div className="flex gap-1 items-center">
-          <button
-            onClick={prevCard}
-            disabled={activeIndex === 0}
-            aria-label="Previous card"
-            className={`w-11 h-11 flex items-center justify-center text-ruhi-earth text-lg transition-opacity ${activeIndex === 0 ? 'opacity-0 pointer-events-none' : 'hover:text-ruhi-deep'}`}
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          {cardDataList.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goToCard(i)}
-              aria-label={`Go to ${CARD_LABELS[i]} card`}
-              aria-current={activeIndex === i ? 'true' : undefined}
-              className="w-11 h-11 flex items-center justify-center"
-            >
-              <span
-                aria-hidden="true"
-                className={`rounded-full transition-all duration-300 block
-                  ${activeIndex === i
-                    ? 'w-8 h-3 bg-ruhi-deep'
-                    : 'w-3 h-3 bg-ruhi-earth/50 hover:bg-ruhi-earth'
-                  }`}
-              />
-            </button>
-          ))}
-          <button
-            onClick={nextCard}
-            disabled={activeIndex === cardDataList.length - 1}
-            aria-label="Next card"
-            className={`w-11 h-11 flex items-center justify-center text-ruhi-earth text-lg transition-opacity ${activeIndex === cardDataList.length - 1 ? 'opacity-0 pointer-events-none' : 'hover:text-ruhi-deep'}`}
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
-        <p className="text-xs text-ruhi-earth mt-1">Tap card to open · Swipe or use arrow keys to browse</p>
+      <p className="text-xs text-ruhi-earth mt-4 text-center">
+        Tap a card to open it
+      </p>
+    </div>
+  )
+}
+
+// ── Loading state with rotating tips ────────────────────────────────
+
+function LoadingState({ phase }) {
+  const tips = tipsForPhase(phase)
+  const [tipIndex, setTipIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTipIndex(i => (i + 1) % tips.length)
+    }, 5500)
+    return () => clearInterval(id)
+  }, [tips.length])
+
+  return (
+    <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+      <div role="status" aria-live="polite" className="flex flex-col items-center gap-6 max-w-sm text-center">
+        <div aria-hidden="true" className="w-12 h-12 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
+        <p className="font-display text-xl text-ruhi-deep animate-pulse">Ruhi is thinking...</p>
+        <p
+          key={tipIndex}
+          className="text-sm text-ruhi-earth leading-relaxed screen-enter"
+        >
+          {tips[tipIndex]}
+        </p>
       </div>
     </div>
   )
 }
 
-// ── Preview cards (shown in the stack) ──────────────────────────────
+// ── Preview cards (face-down style — category prominent, title peek) ────
 
-function MealCardPreview({ meal }) {
+function FaceDownCard({ category, accentBg, title }) {
   return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-rose/20 flex items-center justify-center mb-4">
-        <span className="text-lg">🍽</span>
-      </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-1">{meal.title}</h3>
-      <div className="flex gap-3 text-sm text-ruhi-earth mb-4">
-        <span>{meal.cookTime}</span>
-        <span aria-hidden="true">·</span>
-        <span>{meal.calories}</span>
-      </div>
-      <p className="text-sm text-ruhi-earth">Tap to see recipe</p>
+    <div className="px-6 py-7 flex flex-col items-center text-center">
+      <span aria-hidden="true" className={`w-2 h-2 rounded-full ${accentBg} mb-3`} />
+      <p className="text-xs tracking-[0.2em] uppercase text-ruhi-earth mb-2">
+        {category}
+      </p>
+      <h3 className="font-display text-xl text-ruhi-deep leading-snug max-w-xs">
+        {title}
+      </h3>
     </div>
   )
+}
+
+function MealCardPreview({ meal }) {
+  return <FaceDownCard category="Meal" accentBg="bg-ruhi-rose" title={meal.title} />
 }
 
 function MovementCardPreview({ movement }) {
-  return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-sage/20 flex items-center justify-center mb-4">
-        <span className="text-lg">🏃‍♀️</span>
-      </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-1">{movement.title}</h3>
-      <p className="text-sm text-ruhi-earth mb-4">{movement.duration}</p>
-      <p className="text-sm text-ruhi-earth">Tap to see details</p>
-    </div>
-  )
+  return <FaceDownCard category="Movement" accentBg="bg-ruhi-sage" title={movement.title} />
 }
 
 function EnergyCardPreview({ energy }) {
-  return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-gold/20 flex items-center justify-center mb-4">
-        <span className="text-lg">✨</span>
-      </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-3">{energy.title}</h3>
-      <p className="text-sm text-ruhi-earth">Tap to read more</p>
-    </div>
-  )
+  return <FaceDownCard category="Energy & Mindset" accentBg="bg-ruhi-gold" title={energy.title} />
 }
 
 // ── Expanded cards (full screen) ────────────────────────────────────

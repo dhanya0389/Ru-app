@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { isOnboardingComplete, getProfile } from '@/lib/storage'
 import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
+import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
 
 export default function Home() {
@@ -33,12 +34,13 @@ export default function Home() {
   if (screen === 'onboarding') {
     return (
       <Onboarding
-        onComplete={() => setScreen('checkin')}
+        onComplete={() => setScreen('transition')}
       />
     )
   }
 
-  // Editing mode — opens onboarding at the last screen with existing data
+  // Editing mode — opens onboarding at the last screen with existing data;
+  // skip the transition screen since they're already set up.
   if (screen === 'editing') {
     return (
       <Onboarding
@@ -47,6 +49,10 @@ export default function Home() {
         onComplete={() => setScreen('checkin')}
       />
     )
+  }
+
+  if (screen === 'transition') {
+    return <TransitionScreen onContinue={() => setScreen('checkin')} />
   }
 
   if (screen === 'checkin') {

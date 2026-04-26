@@ -17,7 +17,7 @@ const ENERGY_LABELS = {
   2: 'taking it slow',
   3: 'steady',
   4: 'feeling good',
-  5: 'on fire',
+  5: 'fabulous',
 }
 
 export default function DailyCheckin({ onEditProfile }) {
@@ -76,17 +76,13 @@ export default function DailyCheckin({ onEditProfile }) {
         </div>
       )}
 
-      <h2 className="font-display text-2xl text-ruhi-deep mb-1 screen-enter">What's tonight?</h2>
-      <p className="text-ruhi-earth mb-8 screen-enter">Check in, and I'll build your evening.</p>
+      <h2 className="font-display text-2xl text-ruhi-deep mb-8 screen-enter">What's tonight?</h2>
 
-      {/* Energy — phase-aware language */}
+      {/* Energy — first-person; the phase pill above already names the phase */}
       <div className="w-full mb-8 screen-enter">
-        <p id="energy-label" className="text-sm text-ruhi-earth mb-2">
-          {phase
-            ? `Based on your ${phase.name.toLowerCase()} phase, you're probably `
-            : "Right now you're probably "}
+        <p id="energy-label" className="text-base text-ruhi-earth mb-2">
+          I am{' '}
           <span className="font-semibold text-ruhi-deep">{ENERGY_LABELS[energy]}</span>.
-          {' '}Adjust if that's off.
         </p>
         <input
           type="range"
@@ -100,13 +96,13 @@ export default function DailyCheckin({ onEditProfile }) {
         />
         <div aria-hidden="true" className="flex justify-between text-xs text-ruhi-earth mt-1">
           <span>Running on empty</span>
-          <span>On fire</span>
+          <span>Fabulous</span>
         </div>
       </div>
 
       {/* Cooking mood */}
       <div className="w-full mb-8 screen-enter" role="radiogroup" aria-label="Cooking mood">
-        <p className="text-sm text-ruhi-earth mb-3">Tonight feels like...</p>
+        <p className="text-base text-ruhi-earth mb-3">Tonight feels like...</p>
         <div className="flex flex-col gap-2">
           {COOKING_MOODS.map(m => (
             <button
@@ -129,13 +125,13 @@ export default function DailyCheckin({ onEditProfile }) {
 
       {/* Kitchen input — voice + text */}
       <div className="w-full mb-10 screen-enter">
-        <p className="text-sm text-ruhi-earth mb-2">What's in your kitchen?</p>
+        <p className="text-base text-ruhi-earth mb-2">What's in your kitchen?</p>
         <VoiceInput
           label="What's in your kitchen"
           placeholder="e.g. chickpeas, spinach, rice, chicken thighs..."
           onResult={(text) => setKitchen(text)}
         />
-        <p className="text-xs text-ruhi-earth mt-1">Type, use voice, or leave blank — I'll work with what I know.</p>
+        <p className="text-sm text-ruhi-earth mt-1">Type, use voice, or leave blank — I'll work with what I know.</p>
       </div>
 
       {/* CTA */}
