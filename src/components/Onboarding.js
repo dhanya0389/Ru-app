@@ -31,6 +31,14 @@ const GOALS = [
 
 const CYCLE_LENGTHS = ['24–26', '27–29', '30–32', 'It varies']
 
+const LIFE_STAGES = [
+  'Twenties or younger',
+  'Thirties',
+  'Forties',
+  'Fifties',
+  'Sixties and beyond',
+]
+
 const DEFAULT_PROFILE = {
   diet: null,
   cuisines: [],
@@ -125,19 +133,14 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
       />
     ),
 
-    // 1: Age
+    // 1: Life stage (was: age)
     () => (
-      <Screen title="Roughly, how old are you?" subtitle="So I can tailor nutrition to your body's stage." onNext={next} onBack={back} canProceed={profile.age !== ''}>
-        <input
-          type="number"
-          inputMode="numeric"
-          placeholder="e.g. 32"
-          aria-label="Your age"
-          value={profile.age}
-          onChange={e => update('age', e.target.value)}
-          className="w-24 text-center text-2xl border-b-2 border-ruhi-earth/40 bg-transparent
-                     focus:border-ruhi-deep py-2 mx-auto block"
-        />
+      <Screen title="What stage of life are you in?" subtitle="So I can tailor nutrition to your body's stage." onNext={next} onBack={back} canProceed={profile.age !== ''}>
+        <div className="flex flex-col gap-3">
+          {LIFE_STAGES.map(opt => (
+            <OptionButton key={opt} label={opt} selected={profile.age === opt} onTap={() => update('age', opt)} />
+          ))}
+        </div>
       </Screen>
     ),
 
@@ -145,23 +148,23 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     () => (
       <Screen title="What does food look like for you?" onNext={next} onBack={back} canProceed={!!profile.diet}>
         <div className="flex flex-col gap-3">
-          {['Everything', 'No red meat', 'Pescatarian', 'Vegetarian', 'Vegan'].map(opt => (
+          {['Everything', 'Everything but red meat', 'Pescatarian', 'Vegetarian', 'Vegan'].map(opt => (
             <OptionButton key={opt} label={opt} selected={profile.diet === opt} onTap={() => update('diet', opt)} />
           ))}
         </div>
       </Screen>
     ),
 
-    // 3: Cuisines (up to 4)
+    // 3: Cuisines (up to 3)
     () => (
-      <Screen title="What cuisines feel like home?" subtitle="Pick up to 4" onNext={next} onBack={back} canProceed={profile.cuisines.length > 0}>
+      <Screen title="What cuisines feel like home?" subtitle="Pick up to 3" onNext={next} onBack={back} canProceed={profile.cuisines.length > 0}>
         <p className="text-center text-base text-ruhi-earth mb-4" aria-live="polite">
-          {profile.cuisines.length} of 4 selected
+          {profile.cuisines.length} of 3 selected
         </p>
         <div className="flex flex-wrap gap-2 justify-center">
           {CUISINES.map(c => {
             const isSelected = profile.cuisines.includes(c)
-            const atLimit = profile.cuisines.length >= 4 && !isSelected
+            const atLimit = profile.cuisines.length >= 3 && !isSelected
             return (
               <OptionButton
                 key={c}
@@ -169,7 +172,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
                 selected={isSelected}
                 disabled={atLimit}
                 onTap={() => {
-                  if (isSelected || profile.cuisines.length < 4) {
+                  if (isSelected || profile.cuisines.length < 3) {
                     toggleInArray('cuisines', c)
                   }
                 }}
@@ -293,9 +296,13 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
   return (
     <div className="ruhi-bg min-h-screen flex flex-col relative z-10">
-      {/* Progress dots — one per screen, filled as the user advances */}
+      <div className="flex-1 flex flex-col">
+        {screens[step]()}
+      </div>
+      {/* Progress dots — one per screen, filled as the user advances. Sits at
+          the bottom of the screen as a quiet pagination cue. */}
       <div
-        className="flex items-center justify-center gap-1.5 pt-6 pb-2"
+        className="flex items-center justify-center gap-1.5 pt-2 pb-6"
         role="progressbar"
         aria-valuenow={step + 1}
         aria-valuemin={1}
@@ -320,7 +327,6 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
           )
         })}
       </div>
-      {screens[step]()}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { phaseInfo } from '@/lib/phases'
 
 // Rotating tidbits shown while the API call is in flight. Phase-aware so
@@ -94,8 +94,6 @@ const FALLBACK_ENERGY = {
   tip: 'Put your phone in another room for the next 30 minutes. See what your mind does with the quiet.',
 }
 
-const CARD_LABELS = ['Meal', 'Movement', 'Energy & Mindset']
-
 // Minutes the user "has" for each cooking mood — used to pick a fallback meal that fits.
 const COOKING_MOOD_MINUTES = { quick: 15, medium: 30, therapy: 45 }
 
@@ -116,13 +114,9 @@ function pickFallbackMeal(cookingMood, excludeTitle) {
 
 export default function CardView({ profile, phase, energy, cookingMood, kitchen, onBack }) {
   const [cards, setCards] = useState(null)
-  const [activeIndex, setActiveIndex] = useState(0)
   const [expandedCard, setExpandedCard] = useState(null) // null or 'meal' | 'movement' | 'energy'
   const [loading, setLoading] = useState(true)
   const [isFallback, setIsFallback] = useState(false)
-  const [swipeDir, setSwipeDir] = useState(null)
-  const touchStartX = useRef(0)
-  const touchStartY = useRef(0)
 
   useEffect(() => {
     generateCards()
@@ -175,35 +169,6 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
     setLoading(false)
   }
 
-  function goToCard(index) {
-    if (index === activeIndex) return
-    setSwipeDir(index > activeIndex ? 'left' : 'right')
-    setActiveIndex(index)
-    setTimeout(() => setSwipeDir(null), 400)
-  }
-
-  function nextCard() {
-    if (activeIndex < 2) goToCard(activeIndex + 1)
-  }
-
-  function prevCard() {
-    if (activeIndex > 0) goToCard(activeIndex - 1)
-  }
-
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX
-    touchStartY.current = e.touches[0].clientY
-  }
-
-  function handleTouchEnd(e) {
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current
-    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX < 0) nextCard()
-      else prevCard()
-    }
-  }
-
   // Expand a card to full screen
   function expandCard(type) {
     setExpandedCard(type)
@@ -252,14 +217,9 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
     )
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'ArrowRight') nextCard()
-    else if (e.key === 'ArrowLeft') prevCard()
-  }
-
-  // ── Card stack view ─────────────────────────────────────────────
+  // ── Three-card view (all visible, each tappable to expand) ──────
   return (
-    <div className="ruhi-bg min-h-screen flex flex-col px-6 py-8 max-w-md mx-auto relative z-10">
+    <div className="ruhi-bg min-h-screen flex flex-col px-6 py-6 max-w-md mx-auto relative z-10">
       {/* Header */}
       <button onClick={onBack} className="text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4 self-start">
         <span aria-hidden="true">←</span> Adjust check-in
@@ -273,120 +233,43 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
       )}
 
       {isFallback && (
-        <p role="status" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-4 self-center max-w-xs text-center">
+        <p role="status" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-3 self-center max-w-xs text-center">
           Showing sample cards — personalized meals need an ANTHROPIC_API_KEY in <code>.env.local</code>.
         </p>
       )}
 
-      {/* Card stack area */}
-      <div
-        className="flex-1 relative"
-        style={{ perspective: '1000px' }}
+      {/* Three-card column — all visible at once. Tap any to expand. */}
+      <section
         role="region"
-        aria-label="Daily cards"
-        aria-roledescription="carousel"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        aria-label="Tonight's cards"
+        className="flex-1 flex flex-col gap-4 mt-2"
       >
-        {cardDataList.map((card, i) => {
-          const offset = i - activeIndex
-          const isActive = offset === 0
-          const isBehind = offset > 0
-          const isGone = offset < 0
-
-          // Active card → expand. Behind card → surface it. Gone cards stay inert.
-          const handleClick = () => {
-            if (isActive) expandCard(card.type)
-            else if (isBehind) goToCard(i)
-          }
+        {cardDataList.map((card) => {
           const cardLabel = ['meal','movement','energy'].includes(card.type)
             ? `${card.type} card`
             : 'card'
-
           return (
-            <div
+            <button
               key={card.type}
-              className="absolute inset-0 transition-all duration-500 ease-out"
-              style={{
-                transform: isActive
-                  ? 'translateY(0) scale(1) rotateY(0)'
-                  : isBehind
-                    ? `translateY(${offset * 24}px) scale(${1 - offset * 0.05}) rotateY(0)`
-                    : `translateX(${offset * 120}px) scale(0.9) rotateY(${offset * 8}deg)`,
-                opacity: isGone ? 0 : isBehind ? Math.max(0.3, 1 - offset * 0.3) : 1,
-                zIndex: 3 - Math.abs(offset),
-                // Behind cards remain tappable so peeking edges still respond;
-                // gone cards become inert so they don't intercept anything.
-                pointerEvents: isGone ? 'none' : 'auto',
-                filter: isBehind ? `blur(${offset}px)` : 'none',
-              }}
+              type="button"
+              aria-label={`Open ${cardLabel}`}
+              onClick={() => expandCard(card.type)}
+              className="screen-enter block w-full text-left rounded-2xl border border-white/60 shadow-md
+                         backdrop-blur-sm overflow-hidden bg-white/70
+                         transition-all duration-300 hover:scale-[1.015] hover:shadow-lg
+                         focus:outline-none"
             >
-              <button
-                type="button"
-                aria-label={isActive ? `Open ${cardLabel}` : `Bring ${cardLabel} to front`}
-                className={`block w-full h-full rounded-2xl border border-white/50 shadow-lg backdrop-blur-sm overflow-hidden cursor-pointer text-left
-                            ${isActive && swipeDir === 'left' ? 'cascade-enter-left' : ''}
-                            ${isActive && swipeDir === 'right' ? 'cascade-enter-right' : ''}`}
-                onClick={handleClick}
-              >
-                {card.type === 'meal' && (
-                  <MealCardPreview meal={card.data} />
-                )}
-                {card.type === 'movement' && (
-                  <MovementCardPreview movement={card.data} />
-                )}
-                {card.type === 'energy' && (
-                  <EnergyCardPreview energy={card.data} />
-                )}
-              </button>
-            </div>
+              {card.type === 'meal' && <MealCardPreview meal={card.data} />}
+              {card.type === 'movement' && <MovementCardPreview movement={card.data} />}
+              {card.type === 'energy' && <EnergyCardPreview energy={card.data} />}
+            </button>
           )
         })}
-      </div>
+      </section>
 
-      {/* Card indicator dots + label */}
-      <div className="flex flex-col items-center mt-6 gap-2">
-        <p className="text-sm text-ruhi-earth" aria-live="polite">{CARD_LABELS[activeIndex]}</p>
-        <div className="flex gap-1 items-center">
-          <button
-            onClick={prevCard}
-            disabled={activeIndex === 0}
-            aria-label="Previous card"
-            className={`w-11 h-11 flex items-center justify-center text-ruhi-earth text-lg transition-opacity ${activeIndex === 0 ? 'opacity-0 pointer-events-none' : 'hover:text-ruhi-deep'}`}
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          {cardDataList.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goToCard(i)}
-              aria-label={`Go to ${CARD_LABELS[i]} card`}
-              aria-current={activeIndex === i ? 'true' : undefined}
-              className="w-11 h-11 flex items-center justify-center"
-            >
-              <span
-                aria-hidden="true"
-                className={`rounded-full transition-all duration-300 block
-                  ${activeIndex === i
-                    ? 'w-8 h-3 bg-ruhi-deep'
-                    : 'w-3 h-3 bg-ruhi-earth/50 hover:bg-ruhi-earth'
-                  }`}
-              />
-            </button>
-          ))}
-          <button
-            onClick={nextCard}
-            disabled={activeIndex === cardDataList.length - 1}
-            aria-label="Next card"
-            className={`w-11 h-11 flex items-center justify-center text-ruhi-earth text-lg transition-opacity ${activeIndex === cardDataList.length - 1 ? 'opacity-0 pointer-events-none' : 'hover:text-ruhi-deep'}`}
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
-        <p className="text-xs text-ruhi-earth mt-1">Tap a card to flip it · Swipe or arrow keys to browse</p>
-      </div>
+      <p className="text-xs text-ruhi-earth mt-4 text-center">
+        Tap a card to open it
+      </p>
     </div>
   )
 }
@@ -400,7 +283,7 @@ function LoadingState({ phase }) {
   useEffect(() => {
     const id = setInterval(() => {
       setTipIndex(i => (i + 1) % tips.length)
-    }, 3500)
+    }, 5500)
     return () => clearInterval(id)
   }, [tips.length])
 
@@ -424,12 +307,12 @@ function LoadingState({ phase }) {
 
 function FaceDownCard({ category, accentBg, title }) {
   return (
-    <div className="bg-white/85 h-full p-6 flex flex-col items-center justify-center text-center">
-      <span aria-hidden="true" className={`w-2 h-2 rounded-full ${accentBg} mb-5`} />
-      <p className="text-xs tracking-[0.2em] uppercase text-ruhi-earth mb-3">
+    <div className="px-6 py-7 flex flex-col items-center text-center">
+      <span aria-hidden="true" className={`w-2 h-2 rounded-full ${accentBg} mb-3`} />
+      <p className="text-xs tracking-[0.2em] uppercase text-ruhi-earth mb-2">
         {category}
       </p>
-      <h3 className="font-display text-2xl text-ruhi-deep leading-snug max-w-xs">
+      <h3 className="font-display text-xl text-ruhi-deep leading-snug max-w-xs">
         {title}
       </h3>
     </div>
