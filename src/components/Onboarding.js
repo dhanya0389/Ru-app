@@ -23,6 +23,7 @@ const GOALS = [
   'More energy',
   'Better gut health',
   'Beat the 3pm slump',
+  'Tame midnight cravings',
   'Move more',
   'Eat more intentionally',
   'All of the above',
@@ -126,7 +127,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 1: Age
     () => (
-      <Screen title="How old are you?" subtitle="This helps me tailor nutrition to your body's stage." onNext={next} onBack={back} canProceed={profile.age !== ''}>
+      <Screen title="Roughly, how old are you?" subtitle="So I can tailor nutrition to your body's stage." onNext={next} onBack={back} canProceed={profile.age !== ''}>
         <input
           type="number"
           inputMode="numeric"
@@ -144,30 +145,38 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     () => (
       <Screen title="What does food look like for you?" onNext={next} onBack={back} canProceed={!!profile.diet}>
         <div className="flex flex-col gap-3">
-          {['Everything', 'Vegetarian', 'Vegan', 'Pescatarian'].map(opt => (
+          {['Everything', 'No red meat', 'Pescatarian', 'Vegetarian', 'Vegan'].map(opt => (
             <OptionButton key={opt} label={opt} selected={profile.diet === opt} onTap={() => update('diet', opt)} />
           ))}
         </div>
       </Screen>
     ),
 
-    // 3: Cuisines (up to 5)
+    // 3: Cuisines (up to 4)
     () => (
-      <Screen title="What cuisines feel like home?" subtitle="Pick up to 5" onNext={next} onBack={back} canProceed={profile.cuisines.length > 0}>
+      <Screen title="What cuisines feel like home?" subtitle="Pick up to 4" onNext={next} onBack={back} canProceed={profile.cuisines.length > 0}>
+        <p className="text-center text-base text-ruhi-earth mb-4" aria-live="polite">
+          {profile.cuisines.length} of 4 selected
+        </p>
         <div className="flex flex-wrap gap-2 justify-center">
-          {CUISINES.map(c => (
-            <OptionButton
-              key={c}
-              label={c}
-              selected={profile.cuisines.includes(c)}
-              onTap={() => {
-                if (profile.cuisines.includes(c) || profile.cuisines.length < 5) {
-                  toggleInArray('cuisines', c)
-                }
-              }}
-              small
-            />
-          ))}
+          {CUISINES.map(c => {
+            const isSelected = profile.cuisines.includes(c)
+            const atLimit = profile.cuisines.length >= 4 && !isSelected
+            return (
+              <OptionButton
+                key={c}
+                label={c}
+                selected={isSelected}
+                disabled={atLimit}
+                onTap={() => {
+                  if (isSelected || profile.cuisines.length < 4) {
+                    toggleInArray('cuisines', c)
+                  }
+                }}
+                small
+              />
+            )
+          })}
         </div>
       </Screen>
     ),
@@ -181,7 +190,12 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
           initialValue={profile.avoidances}
           onResult={(text) => update('avoidances', text)}
         />
-        <button onClick={next} className="text-sm text-ruhi-earth mt-3 underline">
+        <button
+          onClick={() => { update('avoidances', ''); next(); }}
+          className="block mx-auto mt-5 px-6 py-2.5 rounded-full border border-ruhi-earth/40
+                     text-sm text-ruhi-earth hover:bg-ruhi-warm/50 hover:border-ruhi-earth
+                     transition-colors"
+        >
           Skip — no restrictions
         </button>
       </Screen>
@@ -213,7 +227,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
             />
           ))}
         </div>
-        <p className="text-sm text-ruhi-earth mb-2">How often?</p>
+        <p className="text-base text-ruhi-earth mb-2">How often?</p>
         <div className="flex flex-wrap gap-2 justify-center">
           {['1–2x/week', '3–4x/week', '5+/week', 'Still figuring it out'].map(f => (
             <OptionButton key={f} label={f} selected={profile.movementFrequency === f} onTap={() => update('movementFrequency', f)} small
@@ -258,7 +272,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     // 8: Cycle details (only shown if tracksCycle === true)
     () => (
       <Screen title="A little more about your cycle" onNext={next} onBack={back} canProceed={profile.lastPeriodStart !== ''}>
-        <label htmlFor="lastPeriodStart" className="block text-sm text-ruhi-earth mb-1">When did your last period start?</label>
+        <label htmlFor="lastPeriodStart" className="block text-base text-ruhi-earth mb-1">When did your last period start?</label>
         <input
           id="lastPeriodStart"
           type="date"
@@ -267,7 +281,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
           className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
                      focus:border-ruhi-deep mb-6"
         />
-        <p className="text-sm text-ruhi-earth mb-2">Typical cycle length?</p>
+        <p className="text-base text-ruhi-earth mb-2">Typical cycle length?</p>
         <div className="flex flex-wrap gap-2 justify-center">
           {CYCLE_LENGTHS.map(cl => (
             <OptionButton key={cl} label={cl} selected={profile.cycleLength === cl} onTap={() => update('cycleLength', cl)} small />
@@ -279,19 +293,32 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
   return (
     <div className="ruhi-bg min-h-screen flex flex-col relative z-10">
-      {/* Progress bar */}
+      {/* Progress dots — one per screen, filled as the user advances */}
       <div
-        className="w-full h-1 bg-ruhi-warm"
+        className="flex items-center justify-center gap-1.5 pt-6 pb-2"
         role="progressbar"
         aria-valuenow={step + 1}
         aria-valuemin={1}
         aria-valuemax={screens.length}
         aria-label={`Step ${step + 1} of ${screens.length}`}
       >
-        <div
-          className="h-full bg-ruhi-deep transition-all duration-500 ease-out"
-          style={{ width: `${((step + 1) / screens.length) * 100}%` }}
-        />
+        {screens.map((_, i) => {
+          const isDone = i < step
+          const isCurrent = i === step
+          return (
+            <span
+              key={i}
+              aria-hidden="true"
+              className={`block h-1.5 rounded-full transition-all duration-400 ease-out
+                ${isCurrent
+                  ? 'w-6 bg-ruhi-deep'
+                  : isDone
+                    ? 'w-1.5 bg-ruhi-deep/70'
+                    : 'w-1.5 bg-ruhi-warm'}
+              `}
+            />
+          )
+        })}
       </div>
       {screens[step]()}
     </div>
@@ -334,18 +361,21 @@ function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel
   )
 }
 
-function OptionButton({ label, selected, onTap, small = false, highlight = false }) {
+function OptionButton({ label, selected, onTap, small = false, highlight = false, disabled = false }) {
   return (
     <button
       onClick={onTap}
       aria-pressed={selected}
+      disabled={disabled}
       className={`rounded-full border-2 transition-all duration-200
         ${small ? 'px-4 py-2 text-sm' : 'px-6 py-3'}
-        ${selected
-          ? 'border-ruhi-deep bg-ruhi-deep text-ruhi-cream scale-[1.03] shadow-md'
-          : highlight
-            ? 'border-ruhi-sage text-ruhi-deep hover:border-ruhi-deep bg-ruhi-sage/20'
-            : 'border-ruhi-earth/40 text-ruhi-earth hover:border-ruhi-earth hover:bg-white/40'
+        ${disabled
+          ? 'border-ruhi-earth/20 text-ruhi-earth/40 cursor-not-allowed'
+          : selected
+            ? 'border-ruhi-deep bg-ruhi-deep text-ruhi-cream scale-[1.03] shadow-md'
+            : highlight
+              ? 'border-ruhi-sage text-ruhi-deep hover:border-ruhi-deep bg-ruhi-sage/20'
+              : 'border-ruhi-earth/40 text-ruhi-earth hover:border-ruhi-earth hover:bg-white/40'
         }`}
     >
       {label}

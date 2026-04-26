@@ -1,11 +1,19 @@
 'use client'
 
+import LotusAccent from '@/components/LotusAccent'
+
 export default function Landing({ onStart }) {
   return (
     <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 text-center relative z-10">
       {/* Soft glow behind title */}
       <div className="absolute top-1/3 w-64 h-64 bg-ruhi-rose/20 rounded-full blur-3xl" />
 
+      {/* Botanical accent — single restrained mark */}
+      <LotusAccent
+        width={42}
+        height={72}
+        className="text-ruhi-earth mb-6 screen-enter opacity-80"
+      />
       <p className="text-sm tracking-widest text-ruhi-earth uppercase mb-4 screen-enter">
         a personal health system
       </p>

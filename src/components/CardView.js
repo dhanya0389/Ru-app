@@ -3,6 +3,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { phaseInfo } from '@/lib/phases'
 
+// Rotating tidbits shown while the API call is in flight. Phase-aware so
+// luteal users get luteal-flavored notes, etc. The first item is always the
+// phase's mindset (most relevant); the rest are general embodied-cycle tips.
+const GENERAL_TIPS = [
+  'Vegetables first, protein and fat second, carbs last — your blood sugar will thank you.',
+  'Pair fruit with protein or fat. Skip the fruit-only snack.',
+  'Sweet potato deserves to be steamed, not roasted.',
+  'Turmeric works best with a pinch of black pepper.',
+  'Magnesium-rich foods (dark leafy greens, pumpkin seeds) ease luteal-phase tension.',
+  'Fermented foods help the gut work better — even a spoonful counts.',
+  'Hydrate before caffeine. The slump is often dehydration in disguise.',
+]
+
+function tipsForPhase(phase) {
+  const phaseTip = phase ? phaseInfo[phase.name]?.mindset : null
+  return phaseTip ? [phaseTip, ...GENERAL_TIPS] : GENERAL_TIPS
+}
+
 // ── Fallback data (used when API key not connected) ─────────────────
 
 const FALLBACK_MEALS = [
@@ -196,14 +214,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
   }
 
   if (loading) {
-    return (
-      <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
-        <div role="status" aria-live="polite" className="flex flex-col items-center gap-4">
-          <div aria-hidden="true" className="w-12 h-12 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
-          <p className="font-display text-xl text-ruhi-deep animate-pulse">Ruhi is thinking...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState phase={phase} />
   }
 
   const cardDataList = [
@@ -285,6 +296,15 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
           const isBehind = offset > 0
           const isGone = offset < 0
 
+          // Active card → expand. Behind card → surface it. Gone cards stay inert.
+          const handleClick = () => {
+            if (isActive) expandCard(card.type)
+            else if (isBehind) goToCard(i)
+          }
+          const cardLabel = ['meal','movement','energy'].includes(card.type)
+            ? `${card.type} card`
+            : 'card'
+
           return (
             <div
               key={card.type}
@@ -297,15 +317,19 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
                     : `translateX(${offset * 120}px) scale(0.9) rotateY(${offset * 8}deg)`,
                 opacity: isGone ? 0 : isBehind ? Math.max(0.3, 1 - offset * 0.3) : 1,
                 zIndex: 3 - Math.abs(offset),
-                pointerEvents: isActive ? 'auto' : 'none',
+                // Behind cards remain tappable so peeking edges still respond;
+                // gone cards become inert so they don't intercept anything.
+                pointerEvents: isGone ? 'none' : 'auto',
                 filter: isBehind ? `blur(${offset}px)` : 'none',
               }}
             >
-              <div
-                className={`h-full rounded-2xl border border-white/50 shadow-lg backdrop-blur-sm overflow-hidden cursor-pointer
+              <button
+                type="button"
+                aria-label={isActive ? `Open ${cardLabel}` : `Bring ${cardLabel} to front`}
+                className={`block w-full h-full rounded-2xl border border-white/50 shadow-lg backdrop-blur-sm overflow-hidden cursor-pointer text-left
                             ${isActive && swipeDir === 'left' ? 'cascade-enter-left' : ''}
                             ${isActive && swipeDir === 'right' ? 'cascade-enter-right' : ''}`}
-                onClick={() => isActive && expandCard(card.type)}
+                onClick={handleClick}
               >
                 {card.type === 'meal' && (
                   <MealCardPreview meal={card.data} />
@@ -316,7 +340,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
                 {card.type === 'energy' && (
                   <EnergyCardPreview energy={card.data} />
                 )}
-              </div>
+              </button>
             </div>
           )
         })}
@@ -361,54 +385,67 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
             <span aria-hidden="true">›</span>
           </button>
         </div>
-        <p className="text-xs text-ruhi-earth mt-1">Tap card to open · Swipe or use arrow keys to browse</p>
+        <p className="text-xs text-ruhi-earth mt-1">Tap a card to flip it · Swipe or arrow keys to browse</p>
       </div>
     </div>
   )
 }
 
-// ── Preview cards (shown in the stack) ──────────────────────────────
+// ── Loading state with rotating tips ────────────────────────────────
 
-function MealCardPreview({ meal }) {
+function LoadingState({ phase }) {
+  const tips = tipsForPhase(phase)
+  const [tipIndex, setTipIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTipIndex(i => (i + 1) % tips.length)
+    }, 3500)
+    return () => clearInterval(id)
+  }, [tips.length])
+
   return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-rose/20 flex items-center justify-center mb-4">
-        <span className="text-lg">🍽</span>
+    <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+      <div role="status" aria-live="polite" className="flex flex-col items-center gap-6 max-w-sm text-center">
+        <div aria-hidden="true" className="w-12 h-12 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
+        <p className="font-display text-xl text-ruhi-deep animate-pulse">Ruhi is thinking...</p>
+        <p
+          key={tipIndex}
+          className="text-sm text-ruhi-earth leading-relaxed screen-enter"
+        >
+          {tips[tipIndex]}
+        </p>
       </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-1">{meal.title}</h3>
-      <div className="flex gap-3 text-sm text-ruhi-earth mb-4">
-        <span>{meal.cookTime}</span>
-        <span aria-hidden="true">·</span>
-        <span>{meal.calories}</span>
-      </div>
-      <p className="text-sm text-ruhi-earth">Tap to see recipe</p>
     </div>
   )
+}
+
+// ── Preview cards (face-down style — category prominent, title peek) ────
+
+function FaceDownCard({ category, accentBg, title }) {
+  return (
+    <div className="bg-white/85 h-full p-6 flex flex-col items-center justify-center text-center">
+      <span aria-hidden="true" className={`w-2 h-2 rounded-full ${accentBg} mb-5`} />
+      <p className="text-xs tracking-[0.2em] uppercase text-ruhi-earth mb-3">
+        {category}
+      </p>
+      <h3 className="font-display text-2xl text-ruhi-deep leading-snug max-w-xs">
+        {title}
+      </h3>
+    </div>
+  )
+}
+
+function MealCardPreview({ meal }) {
+  return <FaceDownCard category="Meal" accentBg="bg-ruhi-rose" title={meal.title} />
 }
 
 function MovementCardPreview({ movement }) {
-  return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-sage/20 flex items-center justify-center mb-4">
-        <span className="text-lg">🏃‍♀️</span>
-      </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-1">{movement.title}</h3>
-      <p className="text-sm text-ruhi-earth mb-4">{movement.duration}</p>
-      <p className="text-sm text-ruhi-earth">Tap to see details</p>
-    </div>
-  )
+  return <FaceDownCard category="Movement" accentBg="bg-ruhi-sage" title={movement.title} />
 }
 
 function EnergyCardPreview({ energy }) {
-  return (
-    <div className="bg-white/80 h-full p-6">
-      <div aria-hidden="true" className="w-10 h-10 rounded-full bg-ruhi-gold/20 flex items-center justify-center mb-4">
-        <span className="text-lg">✨</span>
-      </div>
-      <h3 className="font-display text-xl text-ruhi-deep mb-3">{energy.title}</h3>
-      <p className="text-sm text-ruhi-earth">Tap to read more</p>
-    </div>
-  )
+  return <FaceDownCard category="Energy & Mindset" accentBg="bg-ruhi-gold" title={energy.title} />
 }
 
 // ── Expanded cards (full screen) ────────────────────────────────────
