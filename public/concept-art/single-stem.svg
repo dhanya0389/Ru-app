@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 500" width="200" height="500"
+     fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Single lotus stem with bloom and leaf">
+
+  <!-- Stem: gentle s-curve from bloom base to bottom -->
+  <path d="M 100 138
+           C 108 200, 92 280, 100 350
+           C 106 410, 94 460, 100 495"
+        stroke-width="1.3" />
+
+  <!-- Bloom: open lotus, 7 petals -->
+  <!-- Center petal -->
+  <path d="M 100 138
+           C 96 110, 95 80, 100 50
+           C 105 80, 104 110, 100 138 Z"
+        stroke-width="1.1" />
+  <!-- Inner-left petal -->
+  <path d="M 100 138
+           C 84 116, 75 88, 72 60
+           C 84 80, 94 112, 100 138 Z"
+        stroke-width="1.1" />
+  <!-- Inner-right petal -->
+  <path d="M 100 138
+           C 116 116, 125 88, 128 60
+           C 116 80, 106 112, 100 138 Z"
+        stroke-width="1.1" />
+  <!-- Outer-left petal -->
+  <path d="M 100 138
+           C 72 128, 50 118, 36 102
+           C 56 112, 80 124, 100 138 Z"
+        stroke-width="1.1" />
+  <!-- Outer-right petal -->
+  <path d="M 100 138
+           C 128 128, 150 118, 164 102
+           C 144 112, 120 124, 100 138 Z"
+        stroke-width="1.1" />
+  <!-- Outer-left lower petal -->
+  <path d="M 100 138
+           C 78 140, 56 144, 42 138
+           C 60 142, 82 142, 100 138 Z"
+        stroke-width="1.0" />
+  <!-- Outer-right lower petal -->
+  <path d="M 100 138
+           C 122 140, 144 144, 158 138
+           C 140 142, 118 142, 100 138 Z"
+        stroke-width="1.0" />
+
+  <!-- Petal vein lines (light) -->
+  <g stroke-width="0.5" opacity="0.5">
+    <path d="M 100 132 V 65" />
+    <path d="M 96 132 C 90 110, 86 90, 80 72" />
+    <path d="M 104 132 C 110 110, 114 90, 120 72" />
+  </g>
+
+  <!-- Leaf: organic shape extending right at mid-stem -->
+  <path d="M 100 322
+           C 132 308, 162 312, 184 326
+           C 178 348, 152 358, 130 354
+           C 114 350, 104 338, 100 322 Z"
+        stroke-width="1.1" />
+  <!-- Leaf veins -->
+  <g stroke-width="0.5" opacity="0.5">
+    <path d="M 100 322 C 130 326, 156 332, 178 332" />
+    <path d="M 110 326 C 124 332, 138 340, 152 348" />
+    <path d="M 116 320 C 128 314, 144 312, 162 318" />
+  </g>
+
+  <!-- Tiny bud lower on stem (asymmetric breath) -->
+  <path d="M 100 410
+           C 92 404, 92 396, 100 390
+           C 108 396, 108 404, 100 410 Z"
+        stroke-width="0.9" />
+  <path d="M 100 392 V 408" stroke-width="0.4" opacity="0.5" />
+</svg>

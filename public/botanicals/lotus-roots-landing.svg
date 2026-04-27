@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPOSITION SKETCH for Canva refinement.
+  Reference: pink lotus + green leaves above water, root system descending below.
+  Intended placement: BACKGROUND of Landing page.
+    - Lotus + leaves at top (above the wordmark + tagline + CTA text block)
+    - Water surface roughly at vertical center
+    - Roots fanning down through the LOWER portion of the page (below text)
+  In Canva: replace flat outlines with painterly watercolor lotus + leaves and
+  fine ink-line root illustration.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1400" width="800" height="1400"
+     fill="none" stroke="#735D42" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Composition sketch — lotus with leaves above water and roots below">
+
+  <!-- ============== ABOVE WATER (top third) ============== -->
+
+  <!-- Background lily pad leaves spreading horizontally at the water line -->
+  <g fill="#735D42" fill-opacity="0.07" stroke-width="1.2">
+    <!-- Far-left leaf (large, slightly drooping over water edge) -->
+    <path d="M 200 400
+             C 80 392, 30 410, 20 440
+             C 50 460, 130 462, 200 440
+             C 230 426, 222 412, 200 400 Z" />
+    <!-- Right leaf (medium, slightly higher) -->
+    <path d="M 540 380
+             C 660 374, 720 392, 760 420
+             C 720 442, 640 444, 560 422
+             C 530 412, 528 392, 540 380 Z" />
+    <!-- Center small leaf (closer to viewer, small) -->
+    <path d="M 320 432
+             C 380 424, 440 432, 470 446
+             C 440 460, 380 462, 320 452
+             C 300 446, 304 438, 320 432 Z" />
+  </g>
+
+  <!-- Leaf veins (radiating from stem attach point) -->
+  <g stroke-width="0.5" opacity="0.4">
+    <!-- Left leaf veins -->
+    <path d="M 200 432 C 130 436, 60 442, 30 448" />
+    <path d="M 200 426 C 130 416, 60 412, 30 416" />
+    <path d="M 200 440 C 130 450, 60 458, 30 458" />
+    <!-- Right leaf veins -->
+    <path d="M 540 414 C 620 416, 700 422, 740 428" />
+    <path d="M 540 408 C 620 400, 700 396, 740 396" />
+    <!-- Center leaf veins -->
+    <path d="M 320 446 C 360 444, 410 446, 460 448" />
+  </g>
+
+  <!-- Stems for the leaves diving into water -->
+  <g stroke-width="1.2" opacity="0.65">
+    <path d="M 200 440 C 220 470, 230 500, 240 530" />
+    <path d="M 540 422 C 530 460, 528 500, 524 532" />
+    <path d="M 320 452 C 340 480, 348 510, 354 528" />
+  </g>
+
+  <!-- MAIN LOTUS BLOOM (centered above water, around y=240) -->
+  <g transform="translate(400 240)">
+    <!-- Outer petals -->
+    <g fill="#735D42" fill-opacity="0.05" stroke-width="1.3">
+      <path d="M 0 0 C -110 -22, -170 -22, -210 0 C -170 22, -110 22, 0 0 Z" />
+      <path d="M 0 0 C 110 -22, 170 -22, 210 0 C 170 22, 110 22, 0 0 Z" />
+      <path d="M 0 0 C -90 -76, -160 -110, -200 -100 C -170 -42, -75 -10, 0 0 Z" />
+      <path d="M 0 0 C 90 -76, 160 -110, 200 -100 C 170 -42, 75 -10, 0 0 Z" />
+    </g>
+    <!-- Middle petals -->
+    <g fill="#735D42" fill-opacity="0.10" stroke-width="1.4">
+      <path d="M 0 0 C -76 -68, -150 -118, -180 -150 C -140 -100, -68 -38, 0 0 Z" />
+      <path d="M 0 0 C 76 -68, 150 -118, 180 -150 C 140 -100, 68 -38, 0 0 Z" />
+      <path d="M 0 0 C -42 -76, -82 -160, -80 -200 C -50 -130, -8 -60, 0 0 Z" />
+      <path d="M 0 0 C 42 -76, 82 -160, 80 -200 C 50 -130, 8 -60, 0 0 Z" />
+    </g>
+    <!-- Center vertical petals -->
+    <g fill="#735D42" fill-opacity="0.14" stroke-width="1.5">
+      <path d="M 0 0 C -22 -78, -22 -160, 0 -218 C 22 -160, 22 -78, 0 0 Z" />
+      <path d="M 0 0 C -8 -80, 0 -180, -16 -200 C -2 -160, 0 -80, 0 0 Z" />
+      <path d="M 0 0 C 8 -80, 0 -180, 16 -200 C 2 -160, 0 -80, 0 0 Z" />
+    </g>
+    <!-- Receptacle -->
+    <path d="M -22 6 C -22 26, 22 26, 22 6" stroke-width="1.1" opacity="0.7" />
+    <g fill="#735D42" opacity="0.55">
+      <circle cx="-14" cy="16" r="2" />
+      <circle cx="-5" cy="20" r="2" />
+      <circle cx="3" cy="20" r="2" />
+      <circle cx="11" cy="20" r="2" />
+      <circle cx="17" cy="16" r="2" />
+    </g>
+    <!-- Vein lines -->
+    <g stroke-width="0.7" opacity="0.4">
+      <path d="M 0 -8 V -200" />
+      <path d="M -10 -10 C -32 -76, -56 -148, -68 -190" />
+      <path d="M 10 -10 C 32 -76, 56 -148, 68 -190" />
+      <path d="M -28 -8 C -68 -50, -110 -100, -140 -140" />
+      <path d="M 28 -8 C 68 -50, 110 -100, 140 -140" />
+    </g>
+  </g>
+
+  <!-- Main stem from bloom down to water surface -->
+  <path d="M 400 0 M 400 250 C 396 320, 404 400, 400 540" stroke-width="2.4" />
+
+  <!-- Smaller bud on a side stem (slightly off-center, asymmetric) -->
+  <g transform="translate(540 320)">
+    <path d="M 0 0 C -16 -20, -16 -56, 0 -76 C 16 -56, 16 -20, 0 0 Z"
+          fill="#735D42" fill-opacity="0.10" stroke-width="1.2" />
+    <path d="M 0 -10 V -68" stroke-width="0.4" opacity="0.5" />
+  </g>
+  <path d="M 540 0 M 540 540 C 538 480, 542 400, 540 320" stroke-width="1.5" opacity="0.7" />
+
+  <!-- ============== WATER SURFACE LINE (around y=540) ============== -->
+  <line x1="0" y1="540" x2="800" y2="540" stroke-width="1.0" opacity="0.5" />
+  <!-- Surface ripple lines -->
+  <g stroke-width="0.6" opacity="0.4">
+    <path d="M 60 552 C 200 548, 360 548, 540 552 C 660 556, 720 552, 760 548" />
+    <path d="M 100 564 C 280 560, 480 560, 660 564" opacity="0.7" />
+    <path d="M 200 580 C 360 576, 520 576, 620 580" opacity="0.5" />
+  </g>
+
+  <!-- ============== BELOW WATER (lower 60%) ============== -->
+  <!-- This is the ROOT SYSTEM - main element below text -->
+  <!-- Main bulb/rhizome at water line, just below surface -->
+  <g fill="#735D42" fill-opacity="0.06" stroke-width="1.2">
+    <ellipse cx="400" cy="580" rx="65" ry="18" />
+    <ellipse cx="540" cy="586" rx="38" ry="12" />
+  </g>
+
+  <!-- Main stem connection diving down -->
+  <g stroke-width="1.4" opacity="0.7">
+    <path d="M 400 590 C 400 640, 396 700, 400 760" />
+    <path d="M 540 590 C 540 640, 542 690, 540 740" opacity="0.65" />
+  </g>
+
+  <!-- ROOT SYSTEM — fanning out and downward from rhizome -->
+  <g stroke-width="0.9" opacity="0.7">
+    <!-- Major roots from main bulb -->
+    <path d="M 400 590 C 380 660, 350 740, 320 820" />
+    <path d="M 400 590 C 420 660, 450 740, 480 820" />
+    <path d="M 400 590 C 360 680, 300 760, 250 840" />
+    <path d="M 400 590 C 440 680, 500 760, 550 840" />
+    <path d="M 400 590 C 340 700, 250 800, 180 880" />
+    <path d="M 400 590 C 460 700, 550 800, 620 880" />
+    <path d="M 400 590 C 400 700, 380 820, 360 940" />
+    <path d="M 400 590 C 400 700, 420 820, 440 940" />
+
+    <!-- Roots from secondary bulb -->
+    <path d="M 540 590 C 530 670, 510 760, 490 840" opacity="0.7" />
+    <path d="M 540 590 C 560 670, 580 760, 600 840" opacity="0.7" />
+    <path d="M 540 590 C 510 700, 460 800, 420 880" opacity="0.65" />
+    <path d="M 540 590 C 580 700, 640 800, 690 880" opacity="0.65" />
+  </g>
+
+  <!-- Finer root branches (lighter, more delicate) -->
+  <g stroke-width="0.5" opacity="0.5">
+    <path d="M 320 820 C 300 850, 280 880, 270 920" />
+    <path d="M 320 820 C 310 860, 295 900, 285 950" />
+    <path d="M 480 820 C 500 850, 520 880, 530 920" />
+    <path d="M 480 820 C 490 860, 505 900, 515 950" />
+    <path d="M 250 840 C 230 880, 215 920, 210 970" />
+    <path d="M 550 840 C 570 880, 585 920, 590 970" />
+    <path d="M 180 880 C 160 920, 145 970, 142 1020" />
+    <path d="M 620 880 C 640 920, 655 970, 658 1020" />
+    <path d="M 360 940 C 350 990, 345 1040, 348 1080" />
+    <path d="M 440 940 C 450 990, 455 1040, 452 1080" />
+    <path d="M 400 760 C 395 820, 392 880, 395 940" />
+    <path d="M 400 760 C 405 820, 408 880, 405 940" />
+
+    <!-- Root tips - delicate fine ends -->
+    <path d="M 270 920 C 255 950, 245 980, 240 1010" />
+    <path d="M 530 920 C 545 950, 555 980, 560 1010" />
+    <path d="M 285 950 C 270 980, 260 1010, 255 1040" />
+    <path d="M 515 950 C 530 980, 540 1010, 545 1040" />
+    <path d="M 210 970 C 195 1000, 185 1030, 180 1060" />
+    <path d="M 590 970 C 605 1000, 615 1030, 620 1060" />
+  </g>
+
+  <!-- Even finer hair-roots throughout -->
+  <g stroke-width="0.3" opacity="0.4">
+    <path d="M 350 700 C 340 720, 332 740, 328 760" />
+    <path d="M 450 700 C 460 720, 468 740, 472 760" />
+    <path d="M 290 760 C 280 780, 272 800, 268 820" />
+    <path d="M 510 760 C 520 780, 528 800, 532 820" />
+    <path d="M 250 840 C 220 860, 200 880, 190 900" />
+    <path d="M 550 840 C 580 860, 600 880, 610 900" />
+    <path d="M 360 940 C 340 970, 325 1000, 320 1030" />
+    <path d="M 440 940 C 460 970, 475 1000, 480 1030" />
+  </g>
+
+  <!-- Tiny floating particles in water around roots (sediment hint) -->
+  <g fill="#735D42" opacity="0.25">
+    <circle cx="120" cy="700" r="1.2" />
+    <circle cx="680" cy="720" r="1.2" />
+    <circle cx="80" cy="850" r="1" />
+    <circle cx="720" cy="870" r="1" />
+    <circle cx="160" cy="980" r="1" />
+    <circle cx="640" cy="1000" r="1" />
+    <circle cx="100" cy="1100" r="1.2" />
+    <circle cx="700" cy="1120" r="1.2" />
+  </g>
+</svg>

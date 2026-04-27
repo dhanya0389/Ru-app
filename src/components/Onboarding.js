@@ -54,11 +54,22 @@ const DEFAULT_PROFILE = {
 
 // ── Onboarding component ────────────────────────────────────────────
 
-export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
+export default function Onboarding({
+  initialProfile,
+  startAtEnd,
+  onComplete,
+  // Single-section edit mode: render only one screen with Save / Cancel CTAs.
+  // The parent (page.js) routes back to the menu after save or cancel.
+  editSection,
+  onSaveSection,
+  onCancelSection,
+}) {
+  const isSingleEdit = typeof editSection === 'number'
   const isEditing = !!initialProfile
   // If startAtEnd, open at the last screen the user completed
   // (cycle details if they track, cycle question if they don't, or last screen)
   const [step, setStep] = useState(() => {
+    if (isSingleEdit) return editSection
     if (startAtEnd && initialProfile) {
       if (initialProfile.tracksCycle && initialProfile.lastPeriodStart) return 8
       if (initialProfile.tracksCycle === false) return 7
@@ -99,6 +110,18 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
   }
 
   function next() {
+    if (isSingleEdit) {
+      // Save-mode: persist current profile and bounce back to the menu.
+      // Editing Cycle details (step 8) implies the user wants tracking on —
+      // auto-enable it so the phase pill on Daily Check-in starts working
+      // without requiring a separate trip to the "Cycle tracking" toggle.
+      const toSave = (editSection === 8 && profile.lastPeriodStart)
+        ? { ...profile, tracksCycle: true }
+        : profile
+      saveProfile(toSave)
+      onSaveSection?.()
+      return
+    }
     if (step === 7 && profile.tracksCycle === false) {
       finish()
       return
@@ -111,6 +134,11 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
   }
 
   function back() {
+    if (isSingleEdit) {
+      // Cancel-mode: discard local changes (parent reloads profile from storage on next open).
+      onCancelSection?.()
+      return
+    }
     if (step > 0) setStep(s => s - 1)
   }
 
@@ -118,6 +146,11 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
     saveProfile({ ...profile, onboardingComplete: true })
     onComplete()
   }
+
+  // CTA labels override for single-section edit mode
+  const ctaLabels = isSingleEdit
+    ? { nextLabel: 'Save', backLabel: 'Cancel' }
+    : {}
 
   // ── Screen renderers ────────────────────────────────────────────
 
@@ -135,7 +168,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 1: Life stage (was: age)
     () => (
-      <Screen title="What stage of life are you in?" subtitle="So I can tailor nutrition to your body's stage." onNext={next} onBack={back} canProceed={profile.age !== ''}>
+      <Screen title="What stage of life are you in?" subtitle="So I can tailor nutrition to your body's stage." onNext={next} onBack={back} {...ctaLabels} canProceed={profile.age !== ''}>
         <div className="flex flex-col gap-3">
           {LIFE_STAGES.map(opt => (
             <OptionButton key={opt} label={opt} selected={profile.age === opt} onTap={() => update('age', opt)} />
@@ -146,7 +179,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 2: Diet type
     () => (
-      <Screen title="What does food look like for you?" onNext={next} onBack={back} canProceed={!!profile.diet}>
+      <Screen title="What does food look like for you?" onNext={next} onBack={back} {...ctaLabels} canProceed={!!profile.diet}>
         <div className="flex flex-col gap-3">
           {['Everything', 'Everything but red meat', 'Pescatarian', 'Vegetarian', 'Vegan'].map(opt => (
             <OptionButton key={opt} label={opt} selected={profile.diet === opt} onTap={() => update('diet', opt)} />
@@ -157,7 +190,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 3: Cuisines (up to 3)
     () => (
-      <Screen title="What cuisines feel like home?" subtitle="Pick up to 3" onNext={next} onBack={back} canProceed={profile.cuisines.length > 0}>
+      <Screen title="What cuisines feel like home?" subtitle="Pick up to 3" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.cuisines.length > 0}>
         <p className="text-center text-base text-ruhi-earth mb-4" aria-live="polite">
           {profile.cuisines.length} of 3 selected
         </p>
@@ -186,7 +219,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 4: Avoidances (voice + text)
     () => (
-      <Screen title="Anything your body says no to?" subtitle="Allergies, intolerances, foods you avoid" onNext={next} onBack={back} canProceed>
+      <Screen title="Anything your body says no to?" subtitle="Allergies, intolerances, foods you avoid" onNext={next} onBack={back} {...ctaLabels} canProceed>
         <VoiceInput
           label="Foods to avoid"
           placeholder="e.g. gluten, dairy, shellfish..."
@@ -206,7 +239,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 5: Movement + frequency
     () => (
-      <Screen title="What's your movement vibe?" subtitle="Pick all that apply" onNext={next} onBack={back} canProceed={profile.movements.length > 0}>
+      <Screen title="What's your movement vibe?" subtitle="Pick all that apply" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.movements.length > 0}>
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           {MOVEMENTS.map(m => (
             <OptionButton
@@ -243,7 +276,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 6: Goals (pick any number, or "all of the above")
     () => (
-      <Screen title="If Ruhi could help with one thing — what would it be?" subtitle="Pick as many as you'd like" onNext={next} onBack={back} canProceed={profile.goals.length > 0}>
+      <Screen title="If Ruhi could help with one thing — what would it be?" subtitle="Pick as many as you'd like" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.goals.length > 0}>
         <div className="flex flex-col gap-3">
           {GOALS.map(g => (
             <OptionButton
@@ -264,7 +297,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 7: Cycle tracking
     () => (
-      <Screen title="Do you track your cycle?" onNext={next} onBack={back} canProceed={profile.tracksCycle !== null}>
+      <Screen title="Do you track your cycle?" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.tracksCycle !== null}>
         <div className="flex flex-col gap-3">
           <OptionButton label="Yes" selected={profile.tracksCycle === true} onTap={() => update('tracksCycle', true)} />
           <OptionButton label="Skip" selected={profile.tracksCycle === false} onTap={() => update('tracksCycle', false)} />
@@ -274,7 +307,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
     // 8: Cycle details (only shown if tracksCycle === true)
     () => (
-      <Screen title="A little more about your cycle" onNext={next} onBack={back} canProceed={profile.lastPeriodStart !== ''}>
+      <Screen title="A little more about your cycle" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.lastPeriodStart !== ''}>
         <label htmlFor="lastPeriodStart" className="block text-base text-ruhi-earth mb-1">When did your last period start?</label>
         <input
           id="lastPeriodStart"
@@ -300,9 +333,10 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
         {screens[step]()}
       </div>
       {/* Progress dots — one per screen, filled as the user advances. Sits at
-          the bottom of the screen as a quiet pagination cue. */}
+          the bottom of the screen as a quiet pagination cue. Hidden in
+          single-section edit mode (no flow to track). */}
       <div
-        className="flex items-center justify-center gap-1.5 pt-2 pb-6"
+        className={`flex items-center justify-center gap-1.5 pt-2 pb-6 ${isSingleEdit ? 'invisible' : ''}`}
         role="progressbar"
         aria-valuenow={step + 1}
         aria-valuemin={1}
@@ -333,7 +367,7 @@ export default function Onboarding({ initialProfile, startAtEnd, onComplete }) {
 
 // ── Shared UI pieces ────────────────────────────────────────────────
 
-function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel = 'Continue', showBack = true, canProceed = true }) {
+function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel = 'Continue', backLabel = 'Back', showBack = true, canProceed = true }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-md mx-auto w-full screen-enter">
       {greeting && (
@@ -349,7 +383,7 @@ function Screen({ title, greeting, subtitle, children, onNext, onBack, nextLabel
         {showBack && onBack && (
           <button onClick={onBack} className="flex-1 py-3 rounded-full border border-ruhi-earth/40 text-ruhi-earth
                                                hover:bg-ruhi-warm/50 transition-colors">
-            Back
+            {backLabel}
           </button>
         )}
         <button

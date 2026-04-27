@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1200" width="600" height="1200"
+     role="img" aria-label="Watercolor lotus — restrained, single bloom with breathing space">
+
+  <defs>
+    <linearGradient id="waterB" x1="0" y1="950" x2="0" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0" />
+      <stop offset="80%" stop-color="#6B9CA8" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.22" />
+    </linearGradient>
+    <radialGradient id="petalWashB" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#F4C9B0" stop-opacity="0.65" />
+      <stop offset="65%" stop-color="#C97B5C" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#C97B5C" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="padWashB" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.12" />
+    </radialGradient>
+    <filter id="softB" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+  </defs>
+
+  <!-- Quiet water -->
+  <rect x="0" y="950" width="600" height="250" fill="url(#waterB)" />
+  <ellipse cx="300" cy="970" rx="280" ry="10" fill="#6B9CA8" opacity="0.18" filter="url(#softB)" />
+
+  <!-- Single lily pad, off-center left -->
+  <g filter="url(#softB)">
+    <ellipse cx="220" cy="1010" rx="120" ry="34" fill="url(#padWashB)" />
+  </g>
+  <path d="M 220 988 C 130 992, 130 1030, 220 1032"
+        fill="none" stroke="#6B9CA8" stroke-opacity="0.45" stroke-width="1.0" stroke-linecap="round" />
+
+  <!-- Single elegant stem rising from water, slightly off-center to the right -->
+  <path d="M 340 992 C 332 850, 350 700, 340 540 C 332 420, 348 340, 340 280"
+        fill="none" stroke="#735D42" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+
+  <!-- Solitary lotus bloom — slightly above center, the focal point -->
+  <g transform="translate(340 280)">
+    <!-- Atmospheric halo -->
+    <ellipse cx="0" cy="0" rx="130" ry="110" fill="url(#petalWashB)" filter="url(#softB)" />
+
+    <!-- Outer petals -->
+    <g fill="#C97B5C" opacity="0.42">
+      <path d="M 0 0 C -88 -22, -126 -46, -148 -70 C -110 -50, -54 -26, 0 0 Z" />
+      <path d="M 0 0 C 88 -22, 126 -46, 148 -70 C 110 -50, 54 -26, 0 0 Z" />
+      <path d="M 0 0 C -44 -42, -68 -76, -82 -106 C -60 -80, -28 -42, 0 0 Z" />
+      <path d="M 0 0 C 44 -42, 68 -76, 82 -106 C 60 -80, 28 -42, 0 0 Z" />
+      <path d="M 0 0 C -10 -56, -10 -100, 0 -130 C 10 -100, 10 -56, 0 0 Z" />
+    </g>
+
+    <!-- Inner petals (warmer) -->
+    <g fill="#F4C9B0" opacity="0.65">
+      <path d="M 0 0 C -32 -28, -50 -56, -58 -78 C -42 -58, -20 -28, 0 0 Z" />
+      <path d="M 0 0 C 32 -28, 50 -56, 58 -78 C 42 -58, 20 -28, 0 0 Z" />
+      <path d="M 0 0 C -7 -38, -7 -72, 0 -98 C 7 -72, 7 -38, 0 0 Z" />
+    </g>
+
+    <!-- Petal vein outlines, very light -->
+    <g fill="none" stroke="#735D42" stroke-width="0.8" opacity="0.35">
+      <path d="M 0 -8 V -110" />
+      <path d="M -10 -10 C -28 -44, -50 -78, -68 -100" />
+      <path d="M 10 -10 C 28 -44, 50 -78, 68 -100" />
+      <path d="M -22 -8 C -52 -28, -82 -44, -106 -56" />
+      <path d="M 22 -8 C 52 -28, 82 -44, 106 -56" />
+    </g>
+  </g>
+
+  <!-- A single drifting brush gesture — empty space carries weight -->
+  <path d="M 80 850 C 110 870, 140 882, 170 888"
+        stroke="#735D42" stroke-width="0.9" fill="none" opacity="0.22" />
+</svg>

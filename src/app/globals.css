@@ -10,7 +10,9 @@
   --ruhi-sage: #A8C5A0;
   --ruhi-earth: #735D42; /* 4.5:1 on cream — see themes.js */
   --ruhi-deep: #4A3728;
-  --ruhi-gold: #D4A574;
+  --ruhi-teal: #6B9CA8;       /* cool counterpoint, desaturated earthy teal */
+  --ruhi-terracotta: #C97B5C; /* warm rust, pairs with teal */
+  --ruhi-peach: #F4C9B0;      /* soft warm highlight */
 }
 
 /* Visible focus for keyboard users across all interactive controls */
@@ -62,15 +64,17 @@ body {
   z-index: 0;
 }
 
-/* Smooth screen transitions */
+/* Smooth screen transitions — kept short so screen swaps feel instant rather
+   than fadey. 0.18s is below the perceptual lag threshold while still feeling
+   polished (vs 0.4s which read as a noticeable beat). */
 .screen-enter {
-  animation: fadeSlideIn 0.4s ease-out;
+  animation: fadeSlideIn 0.18s ease-out;
 }
 
 @keyframes fadeSlideIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;

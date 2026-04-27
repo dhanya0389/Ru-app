@@ -13,7 +13,9 @@ module.exports = {
           sage: 'var(--ruhi-sage)',
           earth: 'var(--ruhi-earth)',
           deep: 'var(--ruhi-deep)',
-          gold: 'var(--ruhi-gold)',
+          teal: 'var(--ruhi-teal)',
+          terracotta: 'var(--ruhi-terracotta)',
+          peach: 'var(--ruhi-peach)',
         },
       },
       fontFamily: {

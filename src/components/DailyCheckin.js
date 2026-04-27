@@ -5,6 +5,7 @@ import { getProfile } from '@/lib/storage'
 import { getCurrentPhase, phaseInfo } from '@/lib/phases'
 import VoiceInput from '@/components/VoiceInput'
 import CardView from '@/components/CardView'
+import NavMenu from '@/components/NavMenu'
 
 const COOKING_MOODS = [
   { key: 'quick', label: 'Quick & done', time: 'Under 15 min' },
@@ -20,7 +21,7 @@ const ENERGY_LABELS = {
   5: 'fabulous',
 }
 
-export default function DailyCheckin({ onEditProfile }) {
+export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [phase, setPhase] = useState(null)
   const [energy, setEnergy] = useState(3)
@@ -52,6 +53,9 @@ export default function DailyCheckin({ onEditProfile }) {
         cookingMood={cookingMood}
         kitchen={kitchen}
         onBack={() => setShowCards(false)}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={onNavigate}
       />
     )
   }
@@ -60,13 +64,7 @@ export default function DailyCheckin({ onEditProfile }) {
 
   return (
     <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-12 max-w-md mx-auto relative z-10">
-      {/* Edit profile — goes back to onboarding with data pre-filled */}
-      <button
-        onClick={onEditProfile}
-        className="self-end text-xs text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4"
-      >
-        Edit profile
-      </button>
+      <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
 
       {/* Phase indicator */}
       {phaseLabel && (
@@ -76,7 +74,7 @@ export default function DailyCheckin({ onEditProfile }) {
         </div>
       )}
 
-      <h2 className="font-display text-2xl text-ruhi-deep mb-8 screen-enter">What's tonight?</h2>
+      <h2 className="font-display text-2xl text-ruhi-deep mb-8 screen-enter">What's today?</h2>
 
       {/* Energy — first-person; the phase pill above already names the phase */}
       <div className="w-full mb-8 screen-enter">
@@ -102,7 +100,7 @@ export default function DailyCheckin({ onEditProfile }) {
 
       {/* Cooking mood */}
       <div className="w-full mb-8 screen-enter" role="radiogroup" aria-label="Cooking mood">
-        <p className="text-base text-ruhi-earth mb-3">Tonight feels like...</p>
+        <p className="text-base text-ruhi-earth mb-3">Today feels like...</p>
         <div className="flex flex-col gap-2">
           {COOKING_MOODS.map(m => (
             <button

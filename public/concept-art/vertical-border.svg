@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 900" width="200" height="900"
+     fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Vertical lotus vine border">
+
+  <!-- Main vine: gentle s-curves running full height -->
+  <path d="M 100 30
+           C 130 110, 70 200, 100 300
+           C 130 400, 70 500, 100 600
+           C 130 700, 80 800, 100 880"
+        stroke-width="1.2" />
+
+  <!-- Upper open lotus (around y=70) -->
+  <g transform="translate(100 70)">
+    <!-- Center petal -->
+    <path d="M 0 0 C -4 -16, -4 -32, 0 -50 C 4 -32, 4 -16, 0 0 Z" stroke-width="1.1" />
+    <!-- Inner petals -->
+    <path d="M 0 0 C -12 -10, -20 -24, -24 -38 C -14 -24, -6 -10, 0 0 Z" stroke-width="1.1" />
+    <path d="M 0 0 C 12 -10, 20 -24, 24 -38 C 14 -24, 6 -10, 0 0 Z" stroke-width="1.1" />
+    <!-- Outer petals -->
+    <path d="M 0 0 C -20 -4, -36 -10, -46 -18 C -28 -10, -12 -4, 0 0 Z" stroke-width="1.0" opacity="0.85" />
+    <path d="M 0 0 C 20 -4, 36 -10, 46 -18 C 28 -10, 12 -4, 0 0 Z" stroke-width="1.0" opacity="0.85" />
+    <!-- Lower petals -->
+    <path d="M 0 0 C -16 4, -28 6, -38 4 C -22 4, -8 4, 0 0 Z" stroke-width="0.9" opacity="0.75" />
+    <path d="M 0 0 C 16 4, 28 6, 38 4 C 22 4, 8 4, 0 0 Z" stroke-width="0.9" opacity="0.75" />
+    <!-- Vein -->
+    <path d="M 0 -4 V -42" stroke-width="0.4" opacity="0.45" />
+  </g>
+
+  <!-- Upper leaf (around y=220, off to left) -->
+  <g transform="translate(72 220) rotate(-15)">
+    <path d="M 0 0
+             C -28 -6, -52 0, -64 18
+             C -56 32, -34 36, -16 28
+             C -4 22, 0 10, 0 0 Z"
+          stroke-width="1.05" />
+    <path d="M -4 8 C -22 12, -40 18, -56 24" stroke-width="0.4" opacity="0.45" />
+    <path d="M -8 2 C -22 0, -38 4, -54 14" stroke-width="0.4" opacity="0.4" />
+  </g>
+
+  <!-- Mid bud (around y=380, on right side) -->
+  <g transform="translate(126 380) rotate(15)">
+    <path d="M 0 0 C -8 -8, -8 -22, 0 -32 C 8 -22, 8 -8, 0 0 Z" stroke-width="1.0" />
+    <path d="M 0 -4 V -28" stroke-width="0.4" opacity="0.5" />
+    <path d="M -3 -10 C -2 -18, -2 -24, -1 -28" stroke-width="0.4" opacity="0.4" />
+    <path d="M 3 -10 C 2 -18, 2 -24, 1 -28" stroke-width="0.4" opacity="0.4" />
+  </g>
+
+  <!-- Mid leaf (around y=500, off to right) -->
+  <g transform="translate(132 500) rotate(20)">
+    <path d="M 0 0
+             C 26 -4, 48 4, 58 20
+             C 48 32, 26 34, 10 26
+             C 2 20, 0 10, 0 0 Z"
+          stroke-width="1.05" />
+    <path d="M 4 6 C 20 10, 36 16, 50 22" stroke-width="0.4" opacity="0.45" />
+  </g>
+
+  <!-- Lower open lotus (around y=720) -->
+  <g transform="translate(100 720)">
+    <!-- Receptacle hint -->
+    <path d="M -5 4 C -5 10, 5 10, 5 4" stroke-width="0.9" opacity="0.7" />
+    <!-- Center petal -->
+    <path d="M 0 4 C -4 -10, -4 -28, 0 -42 C 4 -28, 4 -10, 0 4 Z" stroke-width="1.1" />
+    <!-- Inner petals -->
+    <path d="M 0 4 C -12 -6, -18 -22, -22 -34 C -12 -22, -4 -8, 0 4 Z" stroke-width="1.1" />
+    <path d="M 0 4 C 12 -6, 18 -22, 22 -34 C 12 -22, 4 -8, 0 4 Z" stroke-width="1.1" />
+    <!-- Outer -->
+    <path d="M 0 4 C -20 0, -34 -4, -42 -12 C -26 -4, -12 2, 0 4 Z" stroke-width="1.0" opacity="0.85" />
+    <path d="M 0 4 C 20 0, 34 -4, 42 -12 C 26 -4, 12 2, 0 4 Z" stroke-width="1.0" opacity="0.85" />
+    <!-- Lower outer -->
+    <path d="M 0 4 C -16 8, -28 10, -38 8 C -22 8, -8 6, 0 4 Z" stroke-width="0.9" opacity="0.75" />
+    <path d="M 0 4 C 16 8, 28 10, 38 8 C 22 8, 8 6, 0 4 Z" stroke-width="0.9" opacity="0.75" />
+    <!-- Vein -->
+    <path d="M 0 0 V -36" stroke-width="0.4" opacity="0.45" />
+  </g>
+
+  <!-- Bottom leaf (around y=840, off to left) -->
+  <g transform="translate(80 840) rotate(-10)">
+    <path d="M 0 0
+             C -22 -4, -42 2, -52 16
+             C -44 28, -26 32, -10 24
+             C -2 18, 0 8, 0 0 Z"
+          stroke-width="1.05" />
+    <path d="M -4 6 C -18 10, -32 16, -46 20" stroke-width="0.4" opacity="0.45" />
+  </g>
+</svg>

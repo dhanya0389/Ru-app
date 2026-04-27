@@ -1,10 +1,25 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { isOnboardingComplete } from '@/lib/storage'
 import LotusAccent from '@/components/LotusAccent'
+import NavMenu from '@/components/NavMenu'
 
-export default function Landing({ onStart }) {
+export default function Landing({ onStart, menuOpen, setMenuOpen, onNavigate }) {
+  // Show NavMenu only when the user is already onboarded — gives them an
+  // escape hatch from Landing back to Today / their profile sections.
+  // First-time visitors see no menu (nothing to navigate to yet).
+  const [showMenu, setShowMenu] = useState(false)
+  useEffect(() => {
+    setShowMenu(isOnboardingComplete())
+  }, [])
+
   return (
     <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 text-center relative z-10">
+      {showMenu && (
+        <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+      )}
+
       {/* Soft glow behind title */}
       <div className="absolute top-1/3 w-64 h-64 bg-ruhi-rose/20 rounded-full blur-3xl" />
 

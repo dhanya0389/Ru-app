@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ruhi · Botanical Concept Art</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --cream: #FFF8F0;
+    --warm: #F5E6D3;
+    --rose: #E8B4B8;
+    --sage: #A8C5A0;
+    --earth: #735D42;
+    --deep: #4A3728;
+    --teal: #6B9CA8;
+    --terracotta: #C97B5C;
+    --peach: #F4C9B0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--deep);
+    font-family: Georgia, serif;
+    padding: 48px 32px 96px;
+    line-height: 1.55;
+  }
+  header {
+    max-width: 1100px;
+    margin: 0 auto 56px;
+  }
+  h1 { font-size: 32px; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .lede { color: var(--earth); font-size: 16px; max-width: 70ch; margin: 0; }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+  }
+  section {
+    background: white;
+    border: 1px solid var(--warm);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  section.full {
+    grid-column: 1 / -1;
+  }
+  section.tall .frame {
+    height: 540px;
+    align-items: stretch;
+  }
+  .frame {
+    width: 100%;
+    background: var(--cream);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 16px 0;
+    overflow: hidden;
+    color: var(--earth);
+  }
+  .frame img {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    display: block;
+  }
+  h2 {
+    font-family: Georgia, serif;
+    font-size: 18px;
+    margin: 0 0 4px;
+    color: var(--deep);
+  }
+  .meta {
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 12px;
+    color: var(--earth);
+    margin: 0;
+  }
+  .desc {
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--earth);
+    margin: 12px 0 0;
+  }
+  /* Theme color demo for fine-line motifs */
+  .swatch-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .swatch {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .group-title {
+    grid-column: 1 / -1;
+    font-family: Georgia, serif;
+    font-size: 22px;
+    color: var(--deep);
+    margin: 32px 0 -8px;
+    border-bottom: 1px solid var(--warm);
+    padding-bottom: 12px;
+  }
+  .footer-note {
+    max-width: 1100px;
+    margin: 64px auto 0;
+    padding: 24px;
+    background: var(--warm);
+    border-radius: 12px;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    color: var(--deep);
+  }
+  .footer-note strong { color: var(--deep); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Ruhi · Botanical Concept Art</h1>
+    <p class="lede">First-pass directional concepts. Take these into Canva and refine — the
+    composition and color hierarchy are the point; texture and finish belong in your hands.
+    All shown in Earth palette only; theme variants come later.</p>
+  </header>
+
+  <main>
+    <h3 class="group-title">★ New direction (Apr 26) — background-treatment compositions</h3>
+
+    <section class="full">
+      <h2>Landing background — lotus + leaves above, roots below</h2>
+      <p class="meta">800 × 1400 · lotus-roots-landing.svg · sits behind text on Landing</p>
+      <div class="frame" style="height: 720px;"><img src="/concept-art/lotus-roots-landing.svg" alt="" /></div>
+      <p class="desc">Composition for Landing background: lotus + lily-pad leaves above water in upper third, water surface mid-page, root system fanning through the lower 60%. Wordmark + tagline + CTA float between bloom and roots. <strong>Take into Canva for painterly watercolor finish + fine-line ink-illustration roots.</strong></p>
+    </section>
+
+    <section class="tall">
+      <h2>Non-landing background (center)</h2>
+      <p class="meta">800 × 1200 · lotus-reflection-bg.svg · semi-transparent on every non-Landing page</p>
+      <div class="frame"><img src="/concept-art/lotus-reflection-bg.svg" alt="" /></div>
+      <p class="desc">Single lotus standing in still water with mirrored reflection. Sits behind content on Onboarding, TransitionScreen, DailyCheckin, CardView. <strong>Take into Canva for painterly watercolor finish + watery reflection brushwork.</strong></p>
+    </section>
+
+    <section class="tall">
+      <h2>Non-landing side (semi-transparent)</h2>
+      <p class="meta">400 × 1200 · lotus-relief-side.svg · vertical strip on every non-Landing page</p>
+      <div class="frame" style="background: #F5E6D3;"><img src="/concept-art/lotus-relief-side.svg" alt="" /></div>
+      <p class="desc">Vertical arrangement: top bud → upper open bloom → mid bud → curled lily-pad → mid bloom → small leaf → bud → large anchor bloom → small leaf at base. <strong>Take into Canva and add the sculpted-relief look</strong> (drop shadows beneath each form, plaster-wall background texture, soft 3D depth).</p>
+    </section>
+
+    <h3 class="group-title">Earlier concepts (kept for reference)</h3>
+
+    <h3 class="group-title">Watercolor (Landing side art) — pick one direction</h3>
+
+    <section class="tall">
+      <h2>Variant A — Faithful</h2>
+      <p class="meta">600 × 1200 · watercolor-A.svg</p>
+      <div class="frame"><img src="/concept-art/watercolor-A.svg" alt="" /></div>
+      <p class="desc">Three lotuses at varying heights and openness, dense lily pads, full vertical scene. Closest to image 1's composition.</p>
+    </section>
+
+    <section class="tall">
+      <h2>Variant B — Restrained</h2>
+      <p class="meta">600 × 1200 · watercolor-B.svg</p>
+      <div class="frame"><img src="/concept-art/watercolor-B.svg" alt="" /></div>
+      <p class="desc">Single bloom mid-height, one lily pad, lots of breathing room. Quieter, more meditative.</p>
+    </section>
+
+    <section class="tall">
+      <h2>Variant C — Three Stages</h2>
+      <p class="meta">600 × 1200 · watercolor-C.svg</p>
+      <div class="frame"><img src="/concept-art/watercolor-C.svg" alt="" /></div>
+      <p class="desc">My interpretive direction: bud → opening → fully open, rising vertically. A quiet narrative of unfolding — thematic for Ruhi (cycles, embodied becoming) without being literal.</p>
+    </section>
+
+    <h3 class="group-title">Fine-line botanicals (every other screen) — all four work together</h3>
+
+    <section>
+      <h2>Single stem</h2>
+      <p class="meta">200 × 500 · single-stem.svg · for narrow side margins</p>
+      <div class="frame" id="stem-frame" style="height: 480px; color: var(--earth);">
+        <img src="/concept-art/single-stem.svg" alt="" />
+      </div>
+      <p class="desc">Side accent for Onboarding. Open lotus at top, leaf mid-stem, tiny bud lower.</p>
+      <div class="swatch-row" data-target="stem-frame">
+        <div class="swatch" style="background: var(--earth)"  data-color="#735D42"  title="Earth"></div>
+        <div class="swatch" style="background: #C2185B"  data-color="#C2185B"  title="Bloom"></div>
+        <div class="swatch" style="background: #7E57C2"  data-color="#7E57C2"  title="Lavender"></div>
+        <div class="swatch" style="background: #2E7D32"  data-color="#2E7D32"  title="Forest"></div>
+        <div class="swatch" style="background: #6D5A7A"  data-color="#6D5A7A"  title="Dawn"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Single bloom</h2>
+      <p class="meta">400 × 400 · single-bloom.svg · for centered TransitionScreen</p>
+      <div class="frame" id="bloom-frame" style="height: 400px; color: var(--earth);">
+        <img src="/concept-art/single-bloom.svg" alt="" />
+      </div>
+      <p class="desc">Symmetric open lotus with seeded receptacle. Anchors the meditative pause.</p>
+      <div class="swatch-row" data-target="bloom-frame">
+        <div class="swatch" style="background: var(--earth)"  data-color="#735D42"  title="Earth"></div>
+        <div class="swatch" style="background: #C2185B"  data-color="#C2185B"  title="Bloom"></div>
+        <div class="swatch" style="background: #7E57C2"  data-color="#7E57C2"  title="Lavender"></div>
+        <div class="swatch" style="background: #2E7D32"  data-color="#2E7D32"  title="Forest"></div>
+        <div class="swatch" style="background: #6D5A7A"  data-color="#6D5A7A"  title="Dawn"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Top-right corner</h2>
+      <p class="meta">300 × 300 · corner-tr.svg · for DailyCheckin</p>
+      <div class="frame" id="corner-frame" style="height: 320px; color: var(--earth);">
+        <img src="/concept-art/corner-tr.svg" alt="" />
+      </div>
+      <p class="desc">Vine entering from top-right, descending bloom, secondary bud branch.</p>
+      <div class="swatch-row" data-target="corner-frame">
+        <div class="swatch" style="background: var(--earth)"  data-color="#735D42"  title="Earth"></div>
+        <div class="swatch" style="background: #C2185B"  data-color="#C2185B"  title="Bloom"></div>
+        <div class="swatch" style="background: #7E57C2"  data-color="#7E57C2"  title="Lavender"></div>
+        <div class="swatch" style="background: #2E7D32"  data-color="#2E7D32"  title="Forest"></div>
+        <div class="swatch" style="background: #6D5A7A"  data-color="#6D5A7A"  title="Dawn"></div>
+      </div>
+    </section>
+
+    <section class="tall">
+      <h2>Vertical border</h2>
+      <p class="meta">200 × 900 · vertical-border.svg · for full-height side border</p>
+      <div class="frame" id="border-frame" style="height: 720px; color: var(--earth);">
+        <img src="/concept-art/vertical-border.svg" alt="" />
+      </div>
+      <p class="desc">Full-height vine with two blooms, three leaves, one bud — for borders on hero screens.</p>
+      <div class="swatch-row" data-target="border-frame">
+        <div class="swatch" style="background: var(--earth)"  data-color="#735D42"  title="Earth"></div>
+        <div class="swatch" style="background: #C2185B"  data-color="#C2185B"  title="Bloom"></div>
+        <div class="swatch" style="background: #7E57C2"  data-color="#7E57C2"  title="Lavender"></div>
+        <div class="swatch" style="background: #2E7D32"  data-color="#2E7D32"  title="Forest"></div>
+        <div class="swatch" style="background: #6D5A7A"  data-color="#6D5A7A"  title="Dawn"></div>
+      </div>
+    </section>
+
+    <h3 class="group-title">Reflection lotus — the new full-page watermark</h3>
+
+    <section class="full">
+      <h2>Reflection watermark</h2>
+      <p class="meta">800 × 1000 · reflection-watermark.svg · displayed at 3-5% opacity over page background</p>
+      <div class="frame" style="height: 720px;"><img src="/concept-art/reflection-watermark.svg" alt="" /></div>
+      <p class="desc">Lotus on water with mirrored reflection drifting downward. Strong silhouette — designed to read even at near-invisibility.</p>
+    </section>
+  </main>
+
+  <div class="footer-note">
+    <strong>Theme color demo:</strong> click the swatches under each fine-line motif to preview
+    how it'll look in different themes (the SVGs use <code>currentColor</code>, so a single file
+    handles all five themes via CSS).<br><br>
+    <strong>Note on watercolor:</strong> SVG can't reproduce true ink-wash texture. The variants
+    here capture <em>composition + palette + flow</em> only. Take whichever direction you prefer
+    into Canva, paint over with real watercolor brushes there, then export the final.<br><br>
+    <strong>Files:</strong> all 8 SVGs live in
+    <code>/Users/benucova/dhanya/ruhi/concept-art/</code> (and mirrored to
+    <code>/public/concept-art/</code> for this preview). Design philosophy in
+    <code>concept-art/PHILOSOPHY.md</code>.
+  </div>
+
+  <script>
+    document.querySelectorAll('.swatch-row').forEach((row) => {
+      const targetId = row.getAttribute('data-target');
+      const target = document.getElementById(targetId);
+      row.querySelectorAll('.swatch').forEach((swatch) => {
+        swatch.addEventListener('click', () => {
+          target.style.color = swatch.getAttribute('data-color');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

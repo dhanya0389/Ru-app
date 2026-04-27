@@ -2,6 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import { phaseInfo } from '@/lib/phases'
+import NavMenu from '@/components/NavMenu'
+
+// LoremFlickr serves Flickr Creative Commons photos by tag, no API key.
+// Loose tag matching pulls non-food photos when ingredient names overlap with
+// other Flickr categories (e.g. "salmon" → cat photos), so we restrict to
+// `food` + the dish form (last word — typically "bowl", "plate", "curry") with
+// `/all` so both tags must match. Less specific to the exact meal, but
+// reliably food-related. Upgrade path: swap to Unsplash API with a key when
+// quality matters more than zero-config setup.
+function mealPhotoUrl(query, width = 600, height = 280) {
+  if (!query) return null
+  const words = query.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return null
+  const dish = words[words.length - 1].toLowerCase().replace(/[^a-z0-9-]/g, '')
+  const slug = encodeURIComponent(`food,${dish || 'meal'}`)
+  return `https://loremflickr.com/${width}/${height}/${slug}/all`
+}
+
+function youtubeSearchUrl(query) {
+  if (!query) return null
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
+}
 
 // Rotating tidbits shown while the API call is in flight. Phase-aware so
 // luteal users get luteal-flavored notes, etc. The first item is always the
@@ -90,7 +112,7 @@ const FALLBACK_MOVEMENT = {
 
 const FALLBACK_ENERGY = {
   title: 'Steady Mode',
-  description: 'You have enough in the tank to finish one meaningful thing. Pick the smallest version of what matters most and do just that. This isn\'t the night for a new project or a big reorganization. It\'s a night for closing one loop — replying to that message, finishing that last section, or making tomorrow\'s plan.',
+  description: 'You have enough in the tank to finish one meaningful thing. Pick the smallest version of what matters most and do just that. This isn\'t the day for a new project or a big reorganization. It\'s a day for closing one loop — replying to that message, finishing that last section, or making tomorrow\'s plan.',
   tip: 'Put your phone in another room for the next 30 minutes. See what your mind does with the quiet.',
 }
 
@@ -112,7 +134,7 @@ function pickFallbackMeal(cookingMood, excludeTitle) {
 
 // ── Main component ──────────────────────────────────────────────────
 
-export default function CardView({ profile, phase, energy, cookingMood, kitchen, onBack }) {
+export default function CardView({ profile, phase, energy, cookingMood, kitchen, onBack, menuOpen, setMenuOpen, onNavigate }) {
   const [cards, setCards] = useState(null)
   const [expandedCard, setExpandedCard] = useState(null) // null or 'meal' | 'movement' | 'energy'
   const [loading, setLoading] = useState(true)
@@ -220,6 +242,8 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
   // ── Three-card view (all visible, each tappable to expand) ──────
   return (
     <div className="ruhi-bg min-h-screen flex flex-col px-6 py-6 max-w-md mx-auto relative z-10">
+      <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+
       {/* Header */}
       <button onClick={onBack} className="text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4 self-start">
         <span aria-hidden="true">←</span> Adjust check-in
@@ -241,7 +265,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
       {/* Three-card column — all visible at once. Tap any to expand. */}
       <section
         role="region"
-        aria-label="Tonight's cards"
+        aria-label="Today's cards"
         className="flex-1 flex flex-col gap-4 mt-2"
       >
         {cardDataList.map((card) => {
@@ -328,12 +352,16 @@ function MovementCardPreview({ movement }) {
 }
 
 function EnergyCardPreview({ energy }) {
-  return <FaceDownCard category="Energy & Mindset" accentBg="bg-ruhi-gold" title={energy.title} />
+  return <FaceDownCard category="Energy & Mindset" accentBg="bg-ruhi-terracotta" title={energy.title} />
 }
 
 // ── Expanded cards (full screen) ────────────────────────────────────
 
 function ExpandedMealCard({ meal, onSurprise }) {
+  // Meal photo intentionally not rendered — LoremFlickr's CC pool produces
+  // wildly off-topic photos (brownie + ice cream for "tamarind dal"). The
+  // imageQuery field is still returned by the API; re-enable when wired to
+  // Unsplash (UNSPLASH_ACCESS_KEY) for reliable matching.
   return (
     <div className="screen-enter">
       <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-rose/20 flex items-center justify-center mb-5">
@@ -375,7 +403,7 @@ function ExpandedMealCard({ meal, onSurprise }) {
 
       <button
         onClick={onSurprise}
-        className="w-full py-3 rounded-full bg-ruhi-gold text-ruhi-deep text-sm
+        className="w-full py-3 rounded-full bg-ruhi-terracotta text-ruhi-deep text-sm
                    hover:bg-ruhi-earth hover:text-ruhi-cream transition-all shadow-sm hover:shadow-md"
       >
         Surprise me — different meal
@@ -385,6 +413,7 @@ function ExpandedMealCard({ meal, onSurprise }) {
 }
 
 function ExpandedMovementCard({ movement }) {
+  const videoUrl = youtubeSearchUrl(movement.videoSearch)
   return (
     <div className="screen-enter">
       <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-sage/20 flex items-center justify-center mb-5">
@@ -393,9 +422,25 @@ function ExpandedMovementCard({ movement }) {
       <h2 className="font-display text-2xl text-ruhi-deep mb-2">{movement.title}</h2>
       <p className="text-sm text-ruhi-earth mb-6">{movement.duration}</p>
 
-      <div className="bg-white/70 rounded-2xl p-5">
+      <div className="bg-white/70 rounded-2xl p-5 mb-4">
         <p className="text-ruhi-deep leading-relaxed">{movement.description}</p>
       </div>
+
+      {videoUrl && (
+        <a
+          href={videoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-full
+                     bg-ruhi-sage/30 text-ruhi-deep text-sm font-medium
+                     hover:bg-ruhi-sage/50 transition-all shadow-sm hover:shadow-md"
+        >
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/>
+          </svg>
+          Watch on YouTube
+        </a>
+      )}
     </div>
   )
 }
@@ -403,7 +448,7 @@ function ExpandedMovementCard({ movement }) {
 function ExpandedEnergyCard({ energy }) {
   return (
     <div className="screen-enter">
-      <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-gold/20 flex items-center justify-center mb-5">
+      <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-terracotta/20 flex items-center justify-center mb-5">
         <span className="text-xl">✨</span>
       </div>
       <h2 className="font-display text-2xl text-ruhi-deep mb-4">{energy.title}</h2>
@@ -413,7 +458,7 @@ function ExpandedEnergyCard({ energy }) {
       </div>
 
       <div className="bg-ruhi-warm/40 rounded-2xl p-5 border border-ruhi-warm">
-        <p className="text-sm font-medium text-ruhi-deep mb-1">Tonight's tip</p>
+        <p className="text-sm font-medium text-ruhi-deep mb-1">Today's tip</p>
         <p className="text-sm text-ruhi-deep italic">{energy.tip}</p>
       </div>
     </div>

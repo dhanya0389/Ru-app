@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1200" width="600" height="1200"
+     role="img" aria-label="Watercolor lotus scene — faithful, dense composition">
+
+  <defs>
+    <!-- Water wash gradient at base -->
+    <linearGradient id="waterA" x1="0" y1="900" x2="0" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0" />
+      <stop offset="60%" stop-color="#6B9CA8" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.32" />
+    </linearGradient>
+    <!-- Petal wash gradient -->
+    <radialGradient id="petalWashA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F4C9B0" stop-opacity="0.7" />
+      <stop offset="70%" stop-color="#C97B5C" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#C97B5C" stop-opacity="0" />
+    </radialGradient>
+    <!-- Lily pad wash -->
+    <radialGradient id="padWashA" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.18" />
+    </radialGradient>
+    <!-- Soft blur for atmospheric edges -->
+    <filter id="softA" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="2.5" />
+    </filter>
+  </defs>
+
+  <!-- Atmospheric water at base -->
+  <rect x="0" y="900" width="600" height="300" fill="url(#waterA)" />
+
+  <!-- Drift/horizon ink-wash at water line -->
+  <ellipse cx="300" cy="920" rx="320" ry="14" fill="#6B9CA8" opacity="0.22" filter="url(#softA)" />
+
+  <!-- LILY PADS — base of composition, dense layer -->
+  <g filter="url(#softA)">
+    <ellipse cx="120" cy="970" rx="120" ry="38" fill="url(#padWashA)" />
+    <ellipse cx="320" cy="990" rx="150" ry="44" fill="url(#padWashA)" />
+    <ellipse cx="500" cy="965" rx="110" ry="34" fill="url(#padWashA)" />
+    <ellipse cx="220" cy="1020" rx="100" ry="28" fill="url(#padWashA)" />
+    <ellipse cx="430" cy="1030" rx="120" ry="30" fill="url(#padWashA)" />
+    <ellipse cx="80" cy="1050" rx="80" ry="22" fill="url(#padWashA)" />
+    <ellipse cx="540" cy="1055" rx="80" ry="22" fill="url(#padWashA)" />
+  </g>
+  <!-- Lily pad outlines (subtle) -->
+  <g fill="none" stroke="#6B9CA8" stroke-opacity="0.5" stroke-width="1.0" stroke-linecap="round">
+    <path d="M 120 952 C 60 956, 60 992, 120 988" />
+    <path d="M 320 970 C 230 974, 230 1008, 320 1010" />
+    <path d="M 500 948 C 440 952, 440 986, 500 982" />
+  </g>
+
+  <!-- LOTUS STEMS — three rising stems -->
+  <g fill="none" stroke="#735D42" stroke-width="2.2" stroke-linecap="round" opacity="0.85">
+    <path d="M 180 940 C 170 800, 196 650, 180 480 C 170 380, 184 280, 180 180" />
+    <path d="M 320 950 C 330 820, 308 680, 320 540 C 330 440, 318 360, 320 290" />
+    <path d="M 460 935 C 450 810, 472 690, 460 580 C 450 500, 464 440, 460 400" />
+  </g>
+
+  <!-- LOTUS BLOOMS — three at different heights and openness -->
+
+  <!-- Bloom 1: tallest, fully open (left) -->
+  <g transform="translate(180 180)">
+    <ellipse cx="0" cy="0" rx="115" ry="95" fill="url(#petalWashA)" filter="url(#softA)" />
+    <g fill="#C97B5C" opacity="0.5">
+      <path d="M 0 0 C -10 -50, -10 -90, 0 -120 C 10 -90, 10 -50, 0 0 Z" />
+      <path d="M 0 0 C -40 -36, -64 -68, -76 -100 C -56 -76, -28 -36, 0 0 Z" />
+      <path d="M 0 0 C 40 -36, 64 -68, 76 -100 C 56 -76, 28 -36, 0 0 Z" />
+      <path d="M 0 0 C -76 -16, -110 -36, -128 -56 C -96 -42, -50 -22, 0 0 Z" />
+      <path d="M 0 0 C 76 -16, 110 -36, 128 -56 C 96 -42, 50 -22, 0 0 Z" />
+    </g>
+    <g fill="#F4C9B0" opacity="0.55">
+      <path d="M 0 0 C -6 -34, -6 -64, 0 -88 C 6 -64, 6 -34, 0 0 Z" />
+      <path d="M 0 0 C -28 -24, -42 -48, -50 -68 C -36 -50, -18 -24, 0 0 Z" />
+      <path d="M 0 0 C 28 -24, 42 -48, 50 -68 C 36 -50, 18 -24, 0 0 Z" />
+    </g>
+    <!-- Vein outlines -->
+    <g fill="none" stroke="#735D42" stroke-width="0.7" opacity="0.4">
+      <path d="M 0 -8 V -100" />
+      <path d="M -8 -10 C -22 -40, -38 -68, -52 -88" />
+      <path d="M 8 -10 C 22 -40, 38 -68, 52 -88" />
+    </g>
+  </g>
+
+  <!-- Bloom 2: middle, half-open (center, slightly later) -->
+  <g transform="translate(320 290)">
+    <ellipse cx="0" cy="0" rx="80" ry="75" fill="url(#petalWashA)" filter="url(#softA)" />
+    <g fill="#C97B5C" opacity="0.55">
+      <path d="M 0 0 C -8 -42, -8 -76, 0 -100 C 8 -76, 8 -42, 0 0 Z" />
+      <path d="M 0 0 C -28 -26, -46 -52, -54 -76 C -38 -54, -16 -26, 0 0 Z" />
+      <path d="M 0 0 C 28 -26, 46 -52, 54 -76 C 38 -54, 16 -26, 0 0 Z" />
+    </g>
+    <g fill="#F4C9B0" opacity="0.55">
+      <path d="M 0 0 C -5 -30, -5 -56, 0 -76 C 5 -56, 5 -30, 0 0 Z" />
+    </g>
+    <g fill="none" stroke="#735D42" stroke-width="0.6" opacity="0.4">
+      <path d="M 0 -8 V -82" />
+    </g>
+  </g>
+
+  <!-- Bloom 3: rightmost, bud (closed) -->
+  <g transform="translate(460 400)">
+    <ellipse cx="0" cy="-22" rx="22" ry="38" fill="#C97B5C" opacity="0.4" filter="url(#softA)" />
+    <path d="M 0 0 C -16 -16, -16 -42, 0 -58 C 16 -42, 16 -16, 0 0 Z"
+          fill="#F4C9B0" opacity="0.6" />
+    <path d="M 0 0 C -16 -16, -16 -42, 0 -58 C 16 -42, 16 -16, 0 0 Z"
+          fill="none" stroke="#735D42" stroke-width="0.9" opacity="0.6" />
+    <path d="M 0 -10 V -52" stroke="#735D42" stroke-width="0.4" opacity="0.5" />
+  </g>
+
+  <!-- Subtle drifting leaves (sumi-e gesture marks) -->
+  <g opacity="0.25">
+    <path d="M 50 700 C 80 720, 110 740, 140 760" stroke="#735D42" stroke-width="0.8" fill="none" />
+    <path d="M 530 760 C 510 780, 490 798, 470 815" stroke="#735D42" stroke-width="0.8" fill="none" />
+  </g>
+</svg>

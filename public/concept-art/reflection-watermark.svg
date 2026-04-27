@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000"
+     role="img" aria-label="Lotus with water reflection — full-page watermark">
+
+  <!--
+    Designed to render at 3-5% opacity over the page background.
+    Strong silhouette so the form survives near-invisibility.
+    Lotus on top, reflection drifting down with watery distortion.
+  -->
+
+  <defs>
+    <!-- Petal wash for the bloom -->
+    <radialGradient id="petalWashW" cx="50%" cy="55%" r="55%">
+      <stop offset="0%" stop-color="#F4C9B0" stop-opacity="0.95" />
+      <stop offset="65%" stop-color="#C97B5C" stop-opacity="0.78" />
+      <stop offset="100%" stop-color="#C97B5C" stop-opacity="0.35" />
+    </radialGradient>
+    <!-- Reflection: muted, distorted, downward fade -->
+    <linearGradient id="reflectionFade" x1="0" y1="500" x2="0" y2="950" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#735D42" stop-opacity="0.55" />
+      <stop offset="70%" stop-color="#735D42" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#735D42" stop-opacity="0" />
+    </linearGradient>
+    <!-- Water surface line -->
+    <linearGradient id="surfaceLine" x1="0" y1="500" x2="0" y2="510" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0" />
+      <stop offset="50%" stop-color="#6B9CA8" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0" />
+    </linearGradient>
+    <!-- Atmospheric blur for reflection ripples -->
+    <filter id="rippleBlur" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <filter id="softW" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="1.6" />
+    </filter>
+  </defs>
+
+  <!-- Water surface horizon line -->
+  <rect x="0" y="496" width="800" height="14" fill="url(#surfaceLine)" />
+  <ellipse cx="400" cy="503" rx="380" ry="3" fill="#6B9CA8" opacity="0.35" />
+
+  <!-- ==================== UPPER LOTUS (the bloom) ==================== -->
+  <g transform="translate(400 320)">
+    <!-- Stem rising from water to bloom -->
+    <path d="M 0 184 C -8 140, 6 90, 0 0"
+          fill="none" stroke="#735D42" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Atmospheric halo around bloom -->
+    <ellipse cx="0" cy="-30" rx="180" ry="150" fill="url(#petalWashW)" filter="url(#softW)" />
+
+    <!-- Outer petals -->
+    <g fill="#C97B5C" opacity="0.7">
+      <path d="M 0 0 C -110 -28, -160 -54, -184 -82 C -140 -60, -68 -28, 0 0 Z" />
+      <path d="M 0 0 C 110 -28, 160 -54, 184 -82 C 140 -60, 68 -28, 0 0 Z" />
+      <path d="M 0 0 C -56 -50, -86 -94, -100 -130 C -76 -102, -36 -52, 0 0 Z" />
+      <path d="M 0 0 C 56 -50, 86 -94, 100 -130 C 76 -102, 36 -52, 0 0 Z" />
+      <path d="M 0 0 C -14 -68, -14 -126, 0 -160 C 14 -126, 14 -68, 0 0 Z" />
+    </g>
+    <!-- Inner petals -->
+    <g fill="#F4C9B0" opacity="0.85">
+      <path d="M 0 0 C -38 -34, -58 -68, -68 -94 C -50 -68, -22 -34, 0 0 Z" />
+      <path d="M 0 0 C 38 -34, 58 -68, 68 -94 C 50 -68, 22 -34, 0 0 Z" />
+      <path d="M 0 0 C -8 -46, -8 -88, 0 -118 C 8 -88, 8 -46, 0 0 Z" />
+    </g>
+    <!-- Vein outlines -->
+    <g fill="none" stroke="#735D42" stroke-width="1.2" opacity="0.55">
+      <path d="M 0 -8 V -136" />
+      <path d="M -12 -10 C -32 -50, -58 -88, -82 -118" />
+      <path d="M 12 -10 C 32 -50, 58 -88, 82 -118" />
+      <path d="M -28 -8 C -62 -32, -100 -52, -130 -68" />
+      <path d="M 28 -8 C 62 -32, 100 -52, 130 -68" />
+    </g>
+    <!-- Stem outline highlight -->
+    <path d="M 0 0 C -2 60, 4 120, 0 184"
+          fill="none" stroke="#4A3728" stroke-width="0.8" opacity="0.4" />
+  </g>
+
+  <!-- ==================== REFLECTION (lower half) ==================== -->
+  <!-- Reflected lotus: mirrored Y, wider/distorted, fading downward -->
+  <g transform="translate(400 700)" opacity="0.65">
+    <g fill="url(#reflectionFade)" filter="url(#rippleBlur)">
+      <!-- Reflected stem (slightly wavering) -->
+      <path d="M -3 -200 C 4 -150, -6 -80, 0 -2 C 6 80, -4 150, 3 200 Z" />
+      <!-- Reflected petals (mirrored, broader, wavering) -->
+      <path d="M 0 -2 C -110 22, -160 50, -184 78 C -140 56, -68 22, 0 -2 Z" />
+      <path d="M 0 -2 C 110 22, 160 50, 184 78 C 140 56, 68 22, 0 -2 Z" />
+      <path d="M 0 -2 C -56 46, -86 90, -100 126 C -76 98, -36 46, 0 -2 Z" />
+      <path d="M 0 -2 C 56 46, 86 90, 100 126 C 76 98, 36 46, 0 -2 Z" />
+      <path d="M 0 -2 C -14 64, -14 122, 0 156 C 14 122, 14 64, 0 -2 Z" />
+      <!-- Inner -->
+      <path d="M 0 -2 C -38 30, -58 64, -68 90 C -50 64, -22 30, 0 -2 Z" />
+      <path d="M 0 -2 C 38 30, 58 64, 68 90 C 50 64, 22 30, 0 -2 Z" />
+    </g>
+  </g>
+
+  <!-- Ripple lines suggesting water disturbance under the lotus -->
+  <g fill="none" stroke="#6B9CA8" stroke-width="1.5" stroke-linecap="round" opacity="0.5">
+    <path d="M 240 510 C 300 504, 380 504, 480 510 C 540 514, 580 510, 620 506" />
+    <path d="M 200 522 C 280 516, 380 516, 500 522 C 580 526, 620 522, 660 518" opacity="0.6" />
+    <path d="M 260 540 C 320 534, 380 534, 460 540" opacity="0.4" />
+    <path d="M 220 556 C 320 550, 460 550, 580 556" opacity="0.3" />
+  </g>
+
+  <!-- A few drifting marks on the surface for depth -->
+  <g fill="#735D42" opacity="0.25">
+    <ellipse cx="180" cy="540" rx="22" ry="2" />
+    <ellipse cx="640" cy="552" rx="26" ry="2" />
+    <ellipse cx="120" cy="580" rx="14" ry="1.5" />
+    <ellipse cx="700" cy="588" rx="18" ry="1.5" />
+  </g>
+</svg>

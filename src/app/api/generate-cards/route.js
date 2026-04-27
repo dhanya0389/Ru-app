@@ -33,17 +33,29 @@ export async function POST(request) {
 FOOD KNOWLEDGE: You know 47 food categories across 10 groups — proteins (9 categories), vegetables (6), carbs+fruits (6), fats+seeds (5), gut health (3), blood sugar+anti-inflammatory (3), minerals (5), skin+hair (4), supplements, functional liquids (2). You prioritize foods by menstrual cycle phase.
 
 PHASE-SPECIFIC RULES:
-- Menstrual: iron-rich foods critical, warming foods, bone broth, root vegetables, gentle movement only
-- Follicular: cruciferous vegetables, fermented foods, lighter proteins, creative energy — try new things
-- Ovulatory: raw vegetables OK, high-intensity movement, peak social energy, lighter meals
-- Luteal: progesterone-supporting foods (tropical fruits ESSENTIAL per Pelz), complex carbs, magnesium-rich, comfort without junk
+- Menstrual: iron-rich foods, warming meals, bone broth, root vegetables; gentle movement only
+- Follicular: cruciferous vegetables, fermented foods, lighter proteins; creative energy
+- Ovulatory: raw vegetables OK, higher-intensity movement OK; lighter meals
+- Luteal: progesterone-supporting foods (tropical fruits essential), complex carbs (NOT refined grains), magnesium-rich, comfort without junk
+
+CARB RULES (strict — apply to every phase):
+- "Complex carbs" means LOW-GI, fiber-rich whole grains and legumes ONLY:
+  ✓ ALLOWED: lentils, chickpeas, black beans, mung beans, quinoa, oats, barley, buckwheat, brown rice (small portion), wild rice, steamed sweet potato, sprouted grain bread
+  ✗ FORBIDDEN: white rice (including basmati), white pasta, white bread, white flour, refined grains, sugar
+- White basmati rice is HIGH-GI even when freshly cooked — never call it a complex carb and never pair it with a "luteal" meal.
+- If a meal needs grains, default to lentils/legumes, quinoa, or steamed sweet potato. Brown rice only in small portions (≤ ½ cup cooked).
 
 MEAL RULES:
-- Always follow Inchauspé sequencing: vegetables first, protein+fat second, carbs last
-- Every meal must have adequate protein (minimum 25g)
+- Inchauspé sequencing: vegetables first, protein+fat second, carbs last
+- Minimum protein per meal: 25g (luteal: aim for 30g+)
 - Sweet potato: NEVER roast — microwave or steam only
 - Pair fruit with protein or fat, never alone
 - Prioritize anti-inflammatory ingredients (turmeric+black pepper, ginger, fatty fish, berries)
+
+VOICE / WRITING RULES:
+- NEVER mention specific practitioners or doctors by name in any card content (no "Dr. So-and-so", no "per Pelz", no name-drops).
+- If you want to reference scientific basis, say "research suggests", "evidence shows", or "the science of cycle-syncing" — never name a person.
+- Card content is direct, warm, embodied; first person where natural. Speak as Ruhi, not as a textbook.
 
 Generate personalized daily wellness cards based on the user's profile, cycle phase, energy level, and what's in their kitchen.`
 
@@ -65,48 +77,78 @@ TODAY:
 - What's in my kitchen: ${kitchen || 'general pantry staples'}
 ${excludeMeal ? `- Do NOT suggest "${excludeMeal}" — give me something different.` : ''}
 
-Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
-{
-  "meal": {
-    "title": "Meal name",
-    "cookTime": "X min",
-    "calories": "~XXX cal",
-    "macros": "Xg protein · Xg carbs · Xg fat",
-    "ingredients": ["item1", "item2"],
-    "steps": ["Step 1.", "Step 2.", "Step 3."]
-  },
-  "movement": {
-    "title": "Movement name",
-    "duration": "X min",
-    "description": "What to do and why it fits today."
-  },
-  "energy": {
-    "title": "Mindset card title",
-    "description": "Phase-appropriate energy and work guidance.",
-    "tip": "One specific actionable tip for tonight."
+Use the return_cards tool to deliver your three cards.`
+
+  // Schema enforced via tool_use. The model must return valid structured JSON
+  // matching this shape — eliminates the parse-fragility we hit when the model
+  // emitted free-form text JSON with stray characters or unescaped quotes.
+  const cardsSchema = {
+    type: 'object',
+    properties: {
+      meal: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Meal name' },
+          cookTime: { type: 'string', description: 'e.g. "12 min"' },
+          calories: { type: 'string', description: 'e.g. "~480 cal"' },
+          macros: { type: 'string', description: 'e.g. "28g protein · 38g carbs · 22g fat"' },
+          ingredients: { type: 'array', items: { type: 'string' } },
+          steps: { type: 'array', items: { type: 'string' } },
+          imageQuery: {
+            type: 'string',
+            description: 'A 2-3 word stock-photo search query for this meal that would surface a beautiful, achievable bowl/plate photo. Examples: "lentil dal bowl", "salmon spinach plate", "chickpea curry bowl". Avoid brand names or specific cuisines unless central to the dish.',
+          },
+        },
+        required: ['title', 'cookTime', 'calories', 'macros', 'ingredients', 'steps', 'imageQuery'],
+      },
+      movement: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          duration: { type: 'string', description: 'e.g. "20 min"' },
+          description: { type: 'string', description: 'What to do and why it fits today.' },
+          videoSearch: {
+            type: 'string',
+            description: 'A YouTube search query (3-6 words) that would surface a good follow-along video for this movement at the suggested duration. For yoga, prefer Yoga with Kassandra (use "Yoga with Kassandra" in the query). Example: "Yoga with Kassandra 20 min luteal" or "10 minute walking workout".',
+          },
+        },
+        required: ['title', 'duration', 'description', 'videoSearch'],
+      },
+      energy: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Mindset card title' },
+          description: { type: 'string', description: 'Phase-appropriate energy and work guidance.' },
+          tip: { type: 'string', description: 'One specific actionable tip for tonight.' },
+        },
+        required: ['title', 'description', 'tip'],
+      },
+    },
+    required: ['meal', 'movement', 'energy'],
   }
-}`
 
   try {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
-      messages: [
-        { role: 'user', content: userMessage },
-      ],
+      max_tokens: 2048,
       system: systemPrompt,
+      tools: [
+        {
+          name: 'return_cards',
+          description: 'Return the three personalized daily wellness cards (meal, movement, energy) for the user.',
+          input_schema: cardsSchema,
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'return_cards' },
+      messages: [{ role: 'user', content: userMessage }],
     })
 
-    const text = message.content[0].text
-    // Claude occasionally wraps JSON in ```json ... ``` code fences despite the prompt.
-    // Extract the first {...} block before parsing so either form works.
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) {
-      console.error('Claude returned no JSON object. Raw text:', text.slice(0, 200))
-      return Response.json({ error: 'Failed to parse cards' }, { status: 500 })
+    const toolUse = message.content.find((block) => block.type === 'tool_use')
+    if (!toolUse) {
+      console.error('Claude did not call return_cards. Stop reason:', message.stop_reason)
+      return Response.json({ error: 'Failed to generate cards' }, { status: 500 })
     }
-    const cards = JSON.parse(match[0])
-    return Response.json(cards)
+    return Response.json(toolUse.input)
   } catch (error) {
     console.error('Claude API error:', error)
     return Response.json(

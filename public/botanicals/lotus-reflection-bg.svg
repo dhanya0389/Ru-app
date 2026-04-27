@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  COMPOSITION SKETCH for Canva refinement.
+  Reference: single pink lotus standing in still water with mirrored reflection.
+  Intended placement: BACKGROUND (semi-transparent) on every non-Landing screen.
+  In Canva: replace these flat outlines with painterly watercolor petals + soft pigment bleeds.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" width="800" height="1200"
+     fill="none" stroke="#735D42" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Composition sketch — single lotus with reflection in water">
+
+  <!-- Water surface line at y=540 (slightly below mid-height — leaves more room for reflection) -->
+  <line x1="40" y1="540" x2="760" y2="540" stroke-width="0.8" opacity="0.45" />
+  <!-- Subtle ripple lines around the stem -->
+  <g stroke-width="0.6" opacity="0.35">
+    <path d="M 240 552 C 320 548, 400 548, 480 552 C 560 556, 600 552, 640 548" />
+    <path d="M 200 564 C 320 560, 480 560, 600 564" opacity="0.7" />
+    <path d="M 280 580 C 360 576, 440 576, 520 580" opacity="0.5" />
+  </g>
+
+  <!-- ABOVE-WATER STEM rising from water to bloom -->
+  <path d="M 400 540 C 396 460, 404 380, 400 320"
+        stroke-width="2.6" />
+  <!-- Stem outline highlight -->
+  <path d="M 400 540 C 398 460, 402 380, 400 320"
+        stroke-width="0.9" opacity="0.4" />
+
+  <!-- ============== UPPER LOTUS BLOOM (centered around 400, 320) ============== -->
+  <!-- Outer petals (5 widest, lower fan) -->
+  <g fill="#735D42" fill-opacity="0.05" stroke-width="1.3">
+    <!-- Far left -->
+    <path d="M 400 320 C 285 296, 220 296, 175 320 C 220 344, 285 344, 400 320 Z" />
+    <!-- Far right -->
+    <path d="M 400 320 C 515 296, 580 296, 625 320 C 580 344, 515 344, 400 320 Z" />
+    <!-- Mid-left -->
+    <path d="M 400 320 C 295 240, 218 220, 165 234 C 200 290, 305 320, 400 320 Z" />
+    <!-- Mid-right -->
+    <path d="M 400 320 C 505 240, 582 220, 635 234 C 600 290, 495 320, 400 320 Z" />
+    <!-- Center-back / bottom -->
+    <path d="M 400 320 C 350 410, 350 460, 400 470 C 450 460, 450 410, 400 320 Z" />
+  </g>
+
+  <!-- Middle ring (4 petals, more upright) -->
+  <g fill="#735D42" fill-opacity="0.10" stroke-width="1.4">
+    <!-- Left -->
+    <path d="M 400 320 C 322 252, 240 200, 200 156 C 245 226, 320 290, 400 320 Z" />
+    <!-- Right -->
+    <path d="M 400 320 C 478 252, 560 200, 600 156 C 555 226, 480 290, 400 320 Z" />
+    <!-- Inner-left (more vertical) -->
+    <path d="M 400 320 C 358 240, 318 158, 320 110 C 350 180, 392 250, 400 320 Z" />
+    <!-- Inner-right (more vertical) -->
+    <path d="M 400 320 C 442 240, 482 158, 480 110 C 450 180, 408 250, 400 320 Z" />
+  </g>
+
+  <!-- Center ring (3 narrow upright) -->
+  <g fill="#735D42" fill-opacity="0.14" stroke-width="1.5">
+    <path d="M 400 320 C 380 240, 370 160, 384 100 C 396 170, 412 250, 400 320 Z" />
+    <path d="M 400 320 C 416 240, 416 160, 400 90 C 384 160, 384 240, 400 320 Z" />
+    <path d="M 400 320 C 420 240, 430 160, 416 100 C 404 170, 388 250, 400 320 Z" />
+  </g>
+
+  <!-- Receptacle (visible at base of bloom) -->
+  <path d="M 380 326 C 380 348, 420 348, 420 326" stroke-width="1.1" opacity="0.7" />
+  <g fill="#735D42" opacity="0.55">
+    <circle cx="386" cy="338" r="2" />
+    <circle cx="394" cy="342" r="2" />
+    <circle cx="402" cy="343" r="2" />
+    <circle cx="410" cy="342" r="2" />
+    <circle cx="416" cy="338" r="2" />
+    <circle cx="400" cy="346" r="1.8" />
+  </g>
+
+  <!-- Petal vein lines (subtle radiating) -->
+  <g stroke-width="0.7" opacity="0.4">
+    <path d="M 400 312 V 110" />
+    <path d="M 388 314 C 360 240, 332 168, 318 124" />
+    <path d="M 412 314 C 440 240, 468 168, 482 124" />
+    <path d="M 360 318 C 320 270, 270 210, 230 168" />
+    <path d="M 440 318 C 480 270, 530 210, 570 168" />
+    <path d="M 310 320 C 260 308, 200 290, 170 264" />
+    <path d="M 490 320 C 540 308, 600 290, 630 264" />
+  </g>
+
+  <!-- ============== REFLECTION (lower half) ============== -->
+  <!--
+    Mirrored composition — wider/wavering, fading downward.
+    Canva pass: replace with proper watercolor distortion brushwork.
+  -->
+  <g transform="translate(400 740)" opacity="0.55">
+    <!-- Reflected stem (subtle waver) -->
+    <path d="M -2 -200 C 4 -150, -4 -80, 0 0 C 6 80, -4 160, 2 220"
+          stroke="#735D42" stroke-width="2" fill="none" />
+    <!-- Reflected outer petals (fading) -->
+    <g fill="#735D42" fill-opacity="0.03" stroke="#735D42" stroke-width="1.0" opacity="0.7">
+      <path d="M 0 0 C -115 24, -180 24, -225 0 C -180 -24, -115 -24, 0 0 Z" />
+      <path d="M 0 0 C 115 24, 180 24, 225 0 C 180 -24, 115 -24, 0 0 Z" />
+      <path d="M 0 0 C -105 80, -182 100, -235 86 C -200 30, -95 0, 0 0 Z" />
+      <path d="M 0 0 C 105 80, 182 100, 235 86 C 200 30, 95 0, 0 0 Z" />
+    </g>
+    <!-- Reflected middle ring -->
+    <g fill="#735D42" fill-opacity="0.05" stroke="#735D42" stroke-width="1.0" opacity="0.55">
+      <path d="M 0 0 C -78 68, -160 120, -200 164 C -155 94, -80 30, 0 0 Z" />
+      <path d="M 0 0 C 78 68, 160 120, 200 164 C 155 94, 80 30, 0 0 Z" />
+      <path d="M 0 0 C -42 80, -82 162, -80 210 C -50 140, -8 70, 0 0 Z" />
+      <path d="M 0 0 C 42 80, 82 162, 80 210 C 50 140, 8 70, 0 0 Z" />
+    </g>
+    <!-- Reflected center -->
+    <g fill="#735D42" fill-opacity="0.07" stroke="#735D42" stroke-width="1.0" opacity="0.45">
+      <path d="M 0 0 C -16 80, -16 160, 0 230 C 16 160, 16 80, 0 0 Z" />
+    </g>
+  </g>
+
+  <!-- A few drift marks far on the surface (depth cues) -->
+  <g fill="#735D42" opacity="0.2">
+    <ellipse cx="120" cy="600" rx="30" ry="2" />
+    <ellipse cx="680" cy="610" rx="34" ry="2" />
+    <ellipse cx="60" cy="680" rx="20" ry="1.5" />
+    <ellipse cx="740" cy="690" rx="22" ry="1.5" />
+  </g>
+
+  <!-- Bottom gradient hint (where reflection fades into nothing) - just a marker line -->
+  <line x1="40" y1="1140" x2="760" y2="1140" stroke-width="0.4" opacity="0.15" />
+</svg>

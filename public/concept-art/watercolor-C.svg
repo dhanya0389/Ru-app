@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1200" width="600" height="1200"
+     role="img" aria-label="Watercolor lotus — three stages of unfolding (bud, opening, open)">
+
+  <!--
+    DESIGN INTENT (Variant C):
+    Three lotuses rising on three stems from a shared water base, each in a
+    different stage of unfolding — closed bud at bottom, half-open at mid-height,
+    fully open at top. A vertical narrative of becoming. Quietly thematic for
+    Ruhi (cycles, embodied unfolding, patient growth). Reads as composition first,
+    meaning second.
+  -->
+
+  <defs>
+    <linearGradient id="waterC" x1="0" y1="940" x2="0" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0" />
+      <stop offset="60%" stop-color="#6B9CA8" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.30" />
+    </linearGradient>
+    <radialGradient id="petalWashC" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#F4C9B0" stop-opacity="0.7" />
+      <stop offset="65%" stop-color="#C97B5C" stop-opacity="0.42" />
+      <stop offset="100%" stop-color="#C97B5C" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="padWashC" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#6B9CA8" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#6B9CA8" stop-opacity="0.16" />
+    </radialGradient>
+    <filter id="softC" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="2.6" />
+    </filter>
+  </defs>
+
+  <!-- Water -->
+  <rect x="0" y="940" width="600" height="260" fill="url(#waterC)" />
+  <ellipse cx="300" cy="960" rx="320" ry="12" fill="#6B9CA8" opacity="0.22" filter="url(#softC)" />
+
+  <!-- Lily pads at shared base -->
+  <g filter="url(#softC)">
+    <ellipse cx="220" cy="1000" rx="130" ry="36" fill="url(#padWashC)" />
+    <ellipse cx="380" cy="1018" rx="110" ry="30" fill="url(#padWashC)" />
+    <ellipse cx="120" cy="1040" rx="80" ry="22" fill="url(#padWashC)" />
+  </g>
+
+  <!-- Three stems rising from shared base, slightly fanning -->
+  <g fill="none" stroke="#735D42" stroke-width="2.1" stroke-linecap="round" opacity="0.85">
+    <!-- Bottom-stage stem (shortest, slight left lean) -->
+    <path d="M 270 990 C 264 970, 270 950, 268 920" />
+    <!-- Mid-stage stem (medium height, gentle s-curve) -->
+    <path d="M 290 990 C 296 880, 282 740, 290 600" />
+    <!-- Top-stage stem (tallest, asymmetric to right) -->
+    <path d="M 310 990 C 318 800, 296 580, 320 360 C 332 280, 314 220, 320 180" />
+  </g>
+
+  <!-- STAGE 1: Bud just above the water (y=920), closed -->
+  <g transform="translate(268 920)">
+    <ellipse cx="0" cy="-20" rx="20" ry="36" fill="#C97B5C" opacity="0.35" filter="url(#softC)" />
+    <path d="M 0 0 C -14 -14, -14 -42, 0 -54 C 14 -42, 14 -14, 0 0 Z"
+          fill="#F4C9B0" opacity="0.55" />
+    <path d="M 0 0 C -14 -14, -14 -42, 0 -54 C 14 -42, 14 -14, 0 0 Z"
+          fill="none" stroke="#735D42" stroke-width="0.9" opacity="0.55" />
+    <path d="M 0 -10 V -48" stroke="#735D42" stroke-width="0.4" opacity="0.5" />
+    <path d="M -4 -16 C -3 -28, -3 -38, -2 -46" stroke="#735D42" stroke-width="0.4" opacity="0.4" />
+    <path d="M 4 -16 C 3 -28, 3 -38, 2 -46" stroke="#735D42" stroke-width="0.4" opacity="0.4" />
+  </g>
+
+  <!-- STAGE 2: Half-open at mid-height (y=600) -->
+  <g transform="translate(290 600)">
+    <ellipse cx="0" cy="-10" rx="68" ry="62" fill="url(#petalWashC)" filter="url(#softC)" />
+    <!-- Inner ring of petals — narrow, partly opened -->
+    <g fill="#C97B5C" opacity="0.5">
+      <path d="M 0 0 C -7 -38, -7 -72, 0 -94 C 7 -72, 7 -38, 0 0 Z" />
+      <path d="M 0 0 C -22 -28, -36 -54, -42 -72 C -28 -54, -10 -28, 0 0 Z" />
+      <path d="M 0 0 C 22 -28, 36 -54, 42 -72 C 28 -54, 10 -28, 0 0 Z" />
+    </g>
+    <g fill="#F4C9B0" opacity="0.6">
+      <path d="M 0 0 C -4 -28, -4 -54, 0 -72 C 4 -54, 4 -28, 0 0 Z" />
+    </g>
+    <g fill="none" stroke="#735D42" stroke-width="0.7" opacity="0.4">
+      <path d="M 0 -6 V -76" />
+      <path d="M -8 -8 C -20 -34, -32 -56, -42 -72" />
+      <path d="M 8 -8 C 20 -34, 32 -56, 42 -72" />
+    </g>
+  </g>
+
+  <!-- STAGE 3: Fully open at top (y=180) -->
+  <g transform="translate(320 180)">
+    <ellipse cx="0" cy="0" rx="125" ry="105" fill="url(#petalWashC)" filter="url(#softC)" />
+    <!-- Outer petal ring -->
+    <g fill="#C97B5C" opacity="0.45">
+      <path d="M 0 0 C -84 -20, -120 -42, -140 -64 C -106 -46, -52 -22, 0 0 Z" />
+      <path d="M 0 0 C 84 -20, 120 -42, 140 -64 C 106 -46, 52 -22, 0 0 Z" />
+      <path d="M 0 0 C -42 -38, -64 -72, -78 -100 C -56 -76, -26 -38, 0 0 Z" />
+      <path d="M 0 0 C 42 -38, 64 -72, 78 -100 C 56 -76, 26 -38, 0 0 Z" />
+      <path d="M 0 0 C -10 -54, -10 -96, 0 -124 C 10 -96, 10 -54, 0 0 Z" />
+    </g>
+    <!-- Inner petal ring (warmer) -->
+    <g fill="#F4C9B0" opacity="0.65">
+      <path d="M 0 0 C -28 -26, -44 -52, -52 -72 C -38 -54, -16 -26, 0 0 Z" />
+      <path d="M 0 0 C 28 -26, 44 -52, 52 -72 C 38 -54, 16 -26, 0 0 Z" />
+      <path d="M 0 0 C -6 -36, -6 -68, 0 -92 C 6 -68, 6 -36, 0 0 Z" />
+    </g>
+    <!-- Vein lines -->
+    <g fill="none" stroke="#735D42" stroke-width="0.7" opacity="0.4">
+      <path d="M 0 -8 V -104" />
+      <path d="M -10 -10 C -28 -44, -50 -78, -68 -100" />
+      <path d="M 10 -10 C 28 -44, 50 -78, 68 -100" />
+      <path d="M -24 -8 C -52 -28, -84 -44, -108 -56" />
+      <path d="M 24 -8 C 52 -28, 84 -44, 108 -56" />
+    </g>
+  </g>
+
+  <!-- Subtle drifting reflections / brush gestures (sumi-e flavor) -->
+  <g opacity="0.18" stroke="#735D42" stroke-width="0.8" fill="none">
+    <path d="M 80 720 C 110 740, 140 758, 170 770" />
+    <path d="M 460 820 C 440 840, 420 858, 400 868" />
+  </g>
+</svg>

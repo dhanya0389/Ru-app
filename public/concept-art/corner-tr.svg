@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300"
+     fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-label="Lotus corner ornament">
+
+  <!-- Vine entering from top-right corner, curving down-left -->
+  <path d="M 295 5
+           C 270 20, 240 40, 218 70
+           C 196 105, 178 140, 168 175
+           C 162 200, 158 222, 156 240"
+        stroke-width="1.2" />
+
+  <!-- Secondary thinner branch off main vine -->
+  <path d="M 220 68
+           C 240 90, 258 108, 276 118"
+        stroke-width="1.0" opacity="0.85" />
+
+  <!-- Small open lotus bloom at vine end (lower-left) -->
+  <g transform="translate(156 240)">
+    <!-- Receptacle/center -->
+    <path d="M -6 4 C -6 12, 6 12, 6 4" stroke-width="0.9" opacity="0.7" />
+
+    <!-- Center petal -->
+    <path d="M 0 4 C -3 -10, -3 -22, 0 -34 C 3 -22, 3 -10, 0 4 Z" stroke-width="1.0" />
+    <!-- Inner petals -->
+    <path d="M 0 4 C -10 -6, -16 -18, -18 -28 C -10 -18, -4 -8, 0 4 Z" stroke-width="1.0" />
+    <path d="M 0 4 C 10 -6, 16 -18, 18 -28 C 10 -18, 4 -8, 0 4 Z" stroke-width="1.0" />
+    <!-- Outer petals -->
+    <path d="M 0 4 C -16 0, -28 -4, -34 -10 C -22 -4, -10 0, 0 4 Z" stroke-width="0.9" opacity="0.85" />
+    <path d="M 0 4 C 16 0, 28 -4, 34 -10 C 22 -4, 10 0, 0 4 Z" stroke-width="0.9" opacity="0.85" />
+
+    <!-- Vein -->
+    <path d="M 0 0 V -28" stroke-width="0.4" opacity="0.45" />
+  </g>
+
+  <!-- Bud on secondary branch -->
+  <g transform="translate(276 118) rotate(20)">
+    <path d="M 0 0 C -5 -4, -5 -10, 0 -14 C 5 -10, 5 -4, 0 0 Z" stroke-width="0.9" />
+    <path d="M 0 -2 V -12" stroke-width="0.4" opacity="0.5" />
+  </g>
+
+  <!-- Single leaf on main vine -->
+  <g transform="translate(195 130) rotate(-30)">
+    <path d="M 0 0
+             C 22 -8, 42 -2, 52 12
+             C 44 26, 22 30, 6 22
+             C -4 16, -2 6, 0 0 Z"
+          stroke-width="1.0" />
+    <!-- Vein -->
+    <path d="M 4 6 C 18 8, 32 12, 46 16" stroke-width="0.4" opacity="0.45" />
+    <path d="M 8 0 C 18 0, 30 4, 44 10" stroke-width="0.4" opacity="0.4" />
+  </g>
+</svg>
