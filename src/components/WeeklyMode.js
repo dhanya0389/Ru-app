@@ -1,0 +1,457 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { getProfile } from '@/lib/storage'
+import {
+  getWeeklyPlan,
+  saveWeeklyPlan,
+  clearWeeklyPlan,
+  getOptIns,
+  computeWeekPhases,
+} from '@/lib/weeklyPlan'
+import NavMenu from '@/components/NavMenu'
+
+const PHASE_LABEL = {
+  menstrual: '🩸 Menstrual',
+  follicular: '🌱 Follicular',
+  ovulatory: '☀️ Ovulatory',
+  luteal: '🌕 Luteal',
+  unknown: 'Unknown',
+}
+
+const PHASE_DOT_BG = {
+  menstrual: 'bg-ruhi-rose',
+  follicular: 'bg-ruhi-sage',
+  ovulatory: 'bg-ruhi-peach',
+  luteal: 'bg-ruhi-terracotta',
+  unknown: 'bg-ruhi-warm',
+}
+
+const TIPS_DURING_GENERATION = [
+  'Reading your cycle phase across the week...',
+  'Picking dishes that match your phase shifts...',
+  'Balancing protein, carbs, and fat for each meal...',
+  'Subtracting what you already have in your pantry...',
+  'Building your shopping list...',
+  'Finalizing the week.',
+]
+
+/**
+ * Weekly mode — Sunday-style "plan the whole week" flow.
+ * States: noPlan → generating → hasPlan (with Menu | Week | Shopping tabs)
+ */
+export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
+  const [plan, setPlan] = useState(null)
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState(null)
+  const [tab, setTab] = useState('menu')
+  const [tipIndex, setTipIndex] = useState(0)
+  const [profile, setProfile] = useState(null)
+  const [optIns, setOptIns] = useState({ seedCycling: false })
+  const [pantry, setPantry] = useState('')
+
+  useEffect(() => {
+    setProfile(getProfile())
+    setOptIns(getOptIns())
+    setPlan(getWeeklyPlan())
+  }, [])
+
+  // Rotate tips while generating
+  useEffect(() => {
+    if (!generating) return
+    const id = setInterval(() => {
+      setTipIndex((i) => (i + 1) % TIPS_DURING_GENERATION.length)
+    }, 4000)
+    return () => clearInterval(id)
+  }, [generating])
+
+  function getNextMonday() {
+    const today = new Date()
+    const day = today.getDay() // 0 = Sun, 1 = Mon
+    const daysUntilMonday = day === 0 ? 1 : (day === 1 ? 0 : 8 - day)
+    const monday = new Date(today)
+    monday.setDate(monday.getDate() + daysUntilMonday)
+    return monday.toISOString().slice(0, 10)
+  }
+
+  async function generatePlan() {
+    if (!profile?.lastPeriodStart || !profile?.cycleLength) {
+      setError('I need your cycle date + length to plan the week. Open the menu and add Cycle details.')
+      return
+    }
+    setGenerating(true)
+    setError(null)
+    setTipIndex(0)
+
+    const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
+    const cycleLengthDays = cycleLengthMap[profile.cycleLength] || 28
+    const weekStart = getNextMonday()
+    const weekDays = computeWeekPhases(weekStart, profile.lastPeriodStart, cycleLengthDays)
+
+    try {
+      const res = await fetch('/api/generate-week', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          profile,
+          weekDays,
+          pantry,
+          supplements: profile.supplements || [],
+          seedCycling: optIns.seedCycling,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.message || body.error || `HTTP ${res.status}`)
+      }
+      const newPlan = await res.json()
+      saveWeeklyPlan(newPlan)
+      setPlan(newPlan)
+      setTab('menu')
+    } catch (err) {
+      console.error('Weekly plan generation failed:', err)
+      setError(err.message || 'Something went wrong. Try again in a minute.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // ── No plan state ──────────────────────────────────────────
+  if (!plan && !generating) {
+    return (
+      <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-12 max-w-md mx-auto relative z-10">
+        <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+
+        <h2 className="font-display text-2xl text-ruhi-deep mb-2 mt-8 screen-enter">Plan your week</h2>
+        <p className="text-ruhi-earth mb-8 text-center max-w-xs leading-relaxed screen-enter">
+          One Sunday plan. Cycle-aware meals for all 7 days. Shopping list ready to order.
+        </p>
+
+        {/* Pantry input */}
+        <div className="w-full mb-6 screen-enter">
+          <label htmlFor="pantry-input" className="block text-base text-ruhi-earth mb-2">
+            What's already in your kitchen?
+          </label>
+          <textarea
+            id="pantry-input"
+            value={pantry}
+            onChange={(e) => setPantry(e.target.value)}
+            placeholder="e.g. salmon, lentils, spinach, eggs, sweet potato..."
+            rows={3}
+            className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
+                       focus:border-ruhi-deep text-sm text-ruhi-deep"
+          />
+          <p className="text-xs text-ruhi-earth mt-1">
+            Items you already have are subtracted from the shopping list.
+          </p>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-sm text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-2 mb-4 max-w-xs text-center">
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={generatePlan}
+          className="w-full py-4 rounded-full bg-ruhi-deep text-ruhi-cream text-lg
+                     hover:bg-ruhi-earth transition-all duration-300 hover:scale-[1.02]
+                     shadow-lg shadow-ruhi-deep/20"
+        >
+          Plan this week
+        </button>
+
+        <p className="text-xs text-ruhi-earth mt-4 text-center max-w-xs">
+          This takes about 1–2 minutes. Ruhi is reading your cycle, your pantry, and your preferences to build something good.
+        </p>
+      </div>
+    )
+  }
+
+  // ── Generating state ───────────────────────────────────────
+  if (generating) {
+    return (
+      <div className="ruhi-bg min-h-screen flex flex-col items-center justify-center px-6 relative z-10">
+        <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+        <div role="status" aria-live="polite" className="flex flex-col items-center gap-6 max-w-sm text-center">
+          <div aria-hidden="true" className="w-12 h-12 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
+          <p className="font-display text-xl text-ruhi-deep animate-pulse">Ruhi is planning your week...</p>
+          <p key={tipIndex} className="text-sm text-ruhi-earth leading-relaxed screen-enter">
+            {TIPS_DURING_GENERATION[tipIndex]}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Has plan state ─────────────────────────────────────────
+  return (
+    <div className="ruhi-bg min-h-screen flex flex-col items-center px-4 py-6 max-w-md mx-auto relative z-10">
+      <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+
+      {/* Header — week range + phase progression */}
+      <div className="w-full mb-4 mt-2">
+        <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Week of</p>
+        <h2 className="font-display text-xl text-ruhi-deep mb-3">
+          {formatDate(plan.days[0].date)} – {formatDate(plan.days[6].date)}
+        </h2>
+        <PhaseProgression days={plan.days} />
+      </div>
+
+      {/* Phase transition callouts */}
+      {plan.phaseTransitionCallouts?.length > 0 && (
+        <div className="w-full mb-4 space-y-2">
+          {plan.phaseTransitionCallouts.map((callout, i) => (
+            <div key={i} className="bg-ruhi-warm/40 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
+              {callout}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Seed cycling note */}
+      {plan.seedCyclingNote && (
+        <div className="w-full mb-4 bg-ruhi-sage/20 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
+          🌱 {plan.seedCyclingNote}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="w-full flex gap-1 mb-4 bg-white/40 rounded-full p-1">
+        <TabButton active={tab === 'menu'} onClick={() => setTab('menu')}>Menu</TabButton>
+        <TabButton active={tab === 'week'} onClick={() => setTab('week')}>Week</TabButton>
+        <TabButton active={tab === 'shopping'} onClick={() => setTab('shopping')}>Shopping</TabButton>
+      </div>
+
+      {/* Tab content */}
+      {tab === 'menu' && <MenuTab menu={plan.menu} />}
+      {tab === 'week' && <WeekTab plan={plan} />}
+      {tab === 'shopping' && <ShoppingTab shoppingList={plan.shoppingList || []} />}
+
+      {/* Bottom actions */}
+      <div className="w-full mt-6 flex flex-col gap-2">
+        <button
+          onClick={() => { clearWeeklyPlan(); setPlan(null); }}
+          className="text-xs text-ruhi-earth hover:text-ruhi-deep transition-colors text-center"
+        >
+          Regenerate this week
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Subcomponents ──────────────────────────────────────────
+
+function PhaseProgression({ days }) {
+  return (
+    <div className="flex gap-1.5">
+      {days.map((d) => (
+        <div
+          key={d.date}
+          title={`${d.dayLabel} · ${PHASE_LABEL[d.phase]} day ${d.cycleDay}`}
+          className="flex-1 text-center"
+        >
+          <div className={`h-1.5 rounded-full ${PHASE_DOT_BG[d.phase]}`} />
+          <p className="text-[10px] text-ruhi-earth mt-1">{d.dayLabel.slice(0, 1)}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      role="tab"
+      aria-selected={active}
+      className={`flex-1 py-2 rounded-full text-sm transition-all duration-200
+        ${active
+          ? 'bg-ruhi-deep text-ruhi-cream shadow-sm'
+          : 'text-ruhi-earth hover:text-ruhi-deep hover:bg-white/30'
+        }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function MenuTab({ menu }) {
+  return (
+    <div className="w-full space-y-5 screen-enter">
+      <MenuSection title="Breakfasts" items={menu.breakfasts} />
+      <MenuSection title="Lunches" items={menu.lunches} />
+      <MenuSection title="Snacks" items={menu.snacks} />
+      <MenuSection title="Dinners" items={menu.dinners} />
+      <DrinksSection drinks={menu.drinks} />
+    </div>
+  )
+}
+
+function MenuSection({ title, items }) {
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">{title}</h3>
+      <div className="space-y-2">
+        {items?.map((item) => (
+          <div key={item.id} className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm">
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <h4 className="font-display text-base text-ruhi-deep leading-tight">{item.title}</h4>
+              <span className="text-xs text-ruhi-earth flex-shrink-0">{item.cookTime}</span>
+            </div>
+            <p className="text-xs text-ruhi-earth mb-1">{item.macros}</p>
+            <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
+              {item.phaseFit?.join(' · ')}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function DrinksSection({ drinks }) {
+  if (!drinks?.length) return null
+  const grouped = { morning: [], afternoon: [], evening: [] }
+  drinks.forEach((d) => grouped[d.timeOfDay]?.push(d))
+
+  return (
+    <section>
+      <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">Drinks</h3>
+      <div className="space-y-3">
+        {['morning', 'afternoon', 'evening'].map((timeOfDay) => (
+          grouped[timeOfDay].length > 0 && (
+            <div key={timeOfDay} className="bg-white/50 rounded-xl p-3">
+              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth mb-2">{timeOfDay}</p>
+              <div className="space-y-1.5">
+                {grouped[timeOfDay].map((d, i) => (
+                  <div key={i} className="text-sm text-ruhi-deep">
+                    <span className="font-medium">{d.title}</span>
+                    <span className="text-xs text-ruhi-earth"> — {d.reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function WeekTab({ plan }) {
+  // Build a lookup from id → menu item for fast assignment rendering
+  const itemById = {}
+  ;['breakfasts', 'lunches', 'snacks', 'dinners'].forEach((cat) => {
+    plan.menu[cat]?.forEach((it) => { itemById[it.id] = it })
+  })
+
+  return (
+    <div className="w-full space-y-3 screen-enter">
+      {plan.days.map((day) => {
+        const assignment = plan.assignments?.find((a) => a.date === day.date)
+        return (
+          <div key={day.date} className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="font-display text-lg text-ruhi-deep">{day.dayLabel}</p>
+                <p className="text-xs text-ruhi-earth">{formatDate(day.date)}</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${PHASE_DOT_BG[day.phase]}`} />
+                <span className="text-xs text-ruhi-earth">{PHASE_LABEL[day.phase]} · day {day.cycleDay}</span>
+              </div>
+            </div>
+            {assignment && (
+              <div className="space-y-1.5 text-sm">
+                <DayMeal label="B" item={itemById[assignment.breakfastId]} />
+                <DayMeal label="L" item={itemById[assignment.lunchId]} />
+                {assignment.snackId && <DayMeal label="S" item={itemById[assignment.snackId]} />}
+                <DayMeal label="D" item={itemById[assignment.dinnerId]} />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DayMeal({ label, item }) {
+  if (!item) return null
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="w-5 flex-shrink-0 text-[10px] uppercase tracking-wide text-ruhi-earth">{label}</span>
+      <span className="text-ruhi-deep flex-1">{item.title}</span>
+    </div>
+  )
+}
+
+function ShoppingTab({ shoppingList }) {
+  const grouped = {}
+  shoppingList.forEach((it) => {
+    const cat = it.category || 'other'
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(it)
+  })
+
+  const categoryOrder = ['produce', 'protein', 'dairy', 'pantry', 'frozen', 'other']
+
+  function openInstacart() {
+    // Tier 1 stub — opens Instacart with a generic search.
+    // Real Connect API integration replaces this once UNSPLASH_ACCESS_KEY arrives.
+    const items = shoppingList.filter((it) => !it.inPantry).map((it) => it.name).join(' ')
+    const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(items)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const toBuyCount = shoppingList.filter((it) => !it.inPantry).length
+  const haveCount = shoppingList.filter((it) => it.inPantry).length
+
+  return (
+    <div className="w-full space-y-4 screen-enter">
+      <div className="flex items-center justify-between text-sm text-ruhi-earth px-1">
+        <span><strong className="text-ruhi-deep">{toBuyCount}</strong> to buy</span>
+        {haveCount > 0 && <span>{haveCount} already have</span>}
+      </div>
+
+      {categoryOrder.map((cat) => (
+        grouped[cat]?.length > 0 && (
+          <section key={cat}>
+            <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">{cat}</h3>
+            <div className="bg-white/70 rounded-2xl p-3 border border-white/60 shadow-sm space-y-1.5">
+              {grouped[cat].map((it, i) => (
+                <div key={i} className={`flex items-center justify-between text-sm
+                  ${it.inPantry ? 'text-ruhi-earth/50 line-through' : 'text-ruhi-deep'}`}>
+                  <span>{it.name}</span>
+                  <span className="text-xs">{it.quantity}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )
+      ))}
+
+      <button
+        onClick={openInstacart}
+        className="w-full py-3 rounded-full bg-ruhi-deep text-ruhi-cream text-sm
+                   hover:bg-ruhi-earth transition-all shadow-md hover:shadow-lg
+                   flex items-center justify-center gap-2"
+      >
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+        </svg>
+        Send to Instacart
+      </button>
+      <p className="text-[10px] text-ruhi-earth text-center -mt-1">
+        Stub for now — real Instacart Connect integration coming once your API key is approved.
+      </p>
+    </div>
+  )
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}

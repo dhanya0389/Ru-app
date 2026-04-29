@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 const PROFILE_SECTIONS = [
   { step: 1, label: 'Life stage' },
   { step: 2, label: 'Diet' },
-  { step: 3, label: 'Cuisines' },
-  { step: 4, label: 'Foods to avoid' },
-  { step: 5, label: 'Movement' },
-  { step: 6, label: 'Goals' },
-  { step: 7, label: 'Cycle tracking' },
-  { step: 8, label: 'Cycle details' },
+  { step: 3, label: 'Carb strictness' },
+  { step: 4, label: 'Cuisines' },
+  { step: 5, label: 'Foods to avoid' },
+  { step: 6, label: 'Movement' },
+  { step: 7, label: 'Goals' },
+  { step: 8, label: 'Cycle tracking' },
+  { step: 9, label: 'Cycle details' },
 ]
 
 /**
@@ -75,6 +76,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
         >
           {/* Top-level destinations */}
           <MenuItem onClick={() => onNavigate('today')} label="Today" />
+          <MenuItem onClick={() => onNavigate('weekly')} label="This week" />
           <MenuItem onClick={() => onNavigate('welcome')} label="Welcome" />
 
           <Divider />
