@@ -36,11 +36,20 @@ INTERNAL FRAMING (use to drive decisions, but NEVER name practitioners in user-f
   * Ovulatory: raw vegetables OK; lighter, more variety; high-intensity movement OK
   * Luteal: progesterone-supporting foods (tropical fruits essential), complex carbs (NOT refined), magnesium-rich, comfort without junk
 
-CARB RULES (strict, every phase):
+CARB RULES — universal (every mode):
 - "Complex carbs" means LOW-GI, fiber-rich whole grains and legumes ONLY:
-  ✓ ALLOWED: lentils, chickpeas, black beans, mung beans, quinoa, oats, barley, buckwheat, brown rice (small portion ≤ ½ cup), wild rice, steamed sweet potato, sprouted grain bread
+  ✓ ALLOWED: lentils, chickpeas, black beans, mung beans, quinoa, oats, barley, buckwheat, brown rice (small portion ≤ ½ cup), wild rice, steamed sweet potato, sprouted grain bread, sourdough
   ✗ FORBIDDEN: white rice (including basmati), white pasta, white bread, white flour, refined grains, sugar
 - White basmati rice is HIGH-GI even when freshly cooked — never call it a complex carb.
+
+CARB STRICTNESS — driven by user's profile.carbStrictness setting:
+- "gentle" mode (DEFAULT — building discipline, easing in):
+  Include moderate complex carbs (~30–40g) at every meal in every phase across the week.
+  Sourdough, oats, quinoa, farro, brown rice (small portion), steamed sweet potato welcome at any meal.
+  Inchauspé sequencing is still strict.
+- "standard" mode (full cycle-syncing, phase-aware):
+  Days 1–13 (ketobiotic): lower carb (15–25g per meal), focus on protein + healthy fats.
+  Days 14–28 (feasting): complex carbs welcome (30–45g per meal). Luteal especially benefits from complex carbs for progesterone support and serotonin.
 
 UNIVERSAL MEAL RULE (every meal, every phase, no exception):
 - Sequencing: vegetables first → protein + fat second → carbs last. This is non-negotiable.
@@ -71,6 +80,7 @@ Generate a weekly menu that the user picks from across 7 days. The menu has 3–
 
 PROFILE:
 - Diet: ${profile?.diet || 'everything'}
+- Carb strictness: ${profile?.carbStrictness || 'gentle'}
 - Cuisines: ${profile?.cuisines?.join(', ') || 'any'}
 - Avoidances: ${profile?.avoidances || 'none'}
 - Movement preferences: ${profile?.movements?.join(', ') || 'any'}

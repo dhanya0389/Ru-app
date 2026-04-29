@@ -38,12 +38,20 @@ PHASE-SPECIFIC RULES:
 - Ovulatory: raw vegetables OK, higher-intensity movement OK; lighter meals
 - Luteal: progesterone-supporting foods (tropical fruits essential), complex carbs (NOT refined grains), magnesium-rich, comfort without junk
 
-CARB RULES (strict — apply to every phase):
+CARB RULES — universal (apply in every mode):
 - "Complex carbs" means LOW-GI, fiber-rich whole grains and legumes ONLY:
-  ✓ ALLOWED: lentils, chickpeas, black beans, mung beans, quinoa, oats, barley, buckwheat, brown rice (small portion), wild rice, steamed sweet potato, sprouted grain bread
+  ✓ ALLOWED: lentils, chickpeas, black beans, mung beans, quinoa, oats, barley, buckwheat, brown rice (small portion), wild rice, steamed sweet potato, sprouted grain bread, sourdough
   ✗ FORBIDDEN: white rice (including basmati), white pasta, white bread, white flour, refined grains, sugar
-- White basmati rice is HIGH-GI even when freshly cooked — never call it a complex carb and never pair it with a "luteal" meal.
-- If a meal needs grains, default to lentils/legumes, quinoa, or steamed sweet potato. Brown rice only in small portions (≤ ½ cup cooked).
+- White basmati rice is HIGH-GI even when freshly cooked — never call it a complex carb.
+
+CARB STRICTNESS — driven by user's profile.carbStrictness setting:
+- "gentle" mode (DEFAULT for most users — building discipline, easing in):
+  Include moderate complex carbs (~30–40g) at every meal in every phase.
+  Sourdough, oats, quinoa, farro, brown rice (small portion), steamed sweet potato welcome at any meal.
+  Inchauspé sequencing (vegetables → protein+fat → carbs) is still strict.
+- "standard" mode (full cycle-syncing, phase-aware):
+  Days 1–13 (menstrual + follicular): lower carb, focus on protein + healthy fats. Carbs 15–25g per meal.
+  Days 14–28 (ovulatory + luteal): complex carbs welcome (30–45g per meal). Luteal especially benefits from complex carbs for progesterone support and serotonin.
 
 MEAL RULES:
 - Inchauspé sequencing: vegetables first, protein+fat second, carbs last
@@ -64,6 +72,7 @@ Generate personalized daily wellness cards based on the user's profile, cycle ph
 PROFILE:
 - Age: ${profile?.age || 'not specified'}
 - Diet: ${profile?.diet || 'everything'}
+- Carb strictness: ${profile?.carbStrictness || 'gentle'}
 - Cuisines: ${profile?.cuisines?.join(', ') || 'any'}
 - Avoidances: ${profile?.avoidances || 'none'}
 - Movement preferences: ${profile?.movements?.join(', ') || 'any'}

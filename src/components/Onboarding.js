@@ -39,8 +39,22 @@ const LIFE_STAGES = [
   'Sixties and beyond',
 ]
 
+const CARB_STRICTNESS_OPTIONS = [
+  {
+    key: 'gentle',
+    label: 'Gentle — ease me in',
+    description: 'Complex carbs welcome at every meal in moderation. Sourdough, oats, quinoa, farro. Never refined grains.',
+  },
+  {
+    key: 'standard',
+    label: 'Standard — full cycle-syncing',
+    description: 'Phase-aware carbs. Lower in the first half of your cycle, complex carbs welcome in the second half.',
+  },
+]
+
 const DEFAULT_PROFILE = {
   diet: null,
+  carbStrictness: 'gentle',
   cuisines: [],
   avoidances: '',
   movements: [],
@@ -71,9 +85,10 @@ export default function Onboarding({
   const [step, setStep] = useState(() => {
     if (isSingleEdit) return editSection
     if (startAtEnd && initialProfile) {
-      if (initialProfile.tracksCycle && initialProfile.lastPeriodStart) return 8
-      if (initialProfile.tracksCycle === false) return 7
-      return 7
+      // Cycle screens shifted +1 with the carb-strictness insertion at step 3.
+      if (initialProfile.tracksCycle && initialProfile.lastPeriodStart) return 9
+      if (initialProfile.tracksCycle === false) return 8
+      return 8
     }
     if (isEditing) return 1
     return 0
@@ -112,17 +127,17 @@ export default function Onboarding({
   function next() {
     if (isSingleEdit) {
       // Save-mode: persist current profile and bounce back to the menu.
-      // Editing Cycle details (step 8) implies the user wants tracking on —
+      // Editing Cycle details (step 9) implies the user wants tracking on —
       // auto-enable it so the phase pill on Daily Check-in starts working
       // without requiring a separate trip to the "Cycle tracking" toggle.
-      const toSave = (editSection === 8 && profile.lastPeriodStart)
+      const toSave = (editSection === 9 && profile.lastPeriodStart)
         ? { ...profile, tracksCycle: true }
         : profile
       saveProfile(toSave)
       onSaveSection?.()
       return
     }
-    if (step === 7 && profile.tracksCycle === false) {
+    if (step === 8 && profile.tracksCycle === false) {
       finish()
       return
     }
@@ -188,7 +203,37 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 3: Cuisines (up to 3)
+    // 3: Carb strictness — how aggressive should Ruhi be with carbs?
+    () => (
+      <Screen
+        title="How strict do you want me to be with carbs?"
+        subtitle="You can change this anytime."
+        onNext={next}
+        onBack={back}
+        {...ctaLabels}
+        canProceed={!!profile.carbStrictness}
+      >
+        <div className="flex flex-col gap-3">
+          {CARB_STRICTNESS_OPTIONS.map(opt => (
+            <button
+              key={opt.key}
+              onClick={() => update('carbStrictness', opt.key)}
+              aria-pressed={profile.carbStrictness === opt.key}
+              className={`text-left rounded-2xl border-2 transition-all duration-200 px-5 py-4
+                ${profile.carbStrictness === opt.key
+                  ? 'border-ruhi-deep bg-ruhi-deep/5 shadow-md'
+                  : 'border-ruhi-earth/40 hover:border-ruhi-earth hover:bg-white/40'
+                }`}
+            >
+              <p className="font-medium text-ruhi-deep mb-1">{opt.label}</p>
+              <p className="text-sm text-ruhi-earth leading-snug">{opt.description}</p>
+            </button>
+          ))}
+        </div>
+      </Screen>
+    ),
+
+    // 4: Cuisines (up to 3)
     () => (
       <Screen title="What cuisines feel like home?" subtitle="Pick up to 3" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.cuisines.length > 0}>
         <p className="text-center text-base text-ruhi-earth mb-4" aria-live="polite">
@@ -217,7 +262,7 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 4: Avoidances (voice + text)
+    // 5: Avoidances (voice + text)
     () => (
       <Screen title="Anything your body says no to?" subtitle="Allergies, intolerances, foods you avoid" onNext={next} onBack={back} {...ctaLabels} canProceed>
         <VoiceInput
@@ -237,7 +282,7 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 5: Movement + frequency
+    // 6: Movement + frequency
     () => (
       <Screen title="What's your movement vibe?" subtitle="Pick all that apply" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.movements.length > 0}>
         <div className="flex flex-wrap gap-2 justify-center mb-6">
@@ -274,7 +319,7 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 6: Goals (pick any number, or "all of the above")
+    // 7: Goals (pick any number, or "all of the above")
     () => (
       <Screen title="If Ruhi could help with one thing — what would it be?" subtitle="Pick as many as you'd like" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.goals.length > 0}>
         <div className="flex flex-col gap-3">
@@ -295,7 +340,7 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 7: Cycle tracking
+    // 8: Cycle tracking
     () => (
       <Screen title="Do you track your cycle?" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.tracksCycle !== null}>
         <div className="flex flex-col gap-3">
@@ -305,7 +350,7 @@ export default function Onboarding({
       </Screen>
     ),
 
-    // 8: Cycle details (only shown if tracksCycle === true)
+    // 9: Cycle details (only shown if tracksCycle === true)
     () => (
       <Screen title="A little more about your cycle" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.lastPeriodStart !== ''}>
         <label htmlFor="lastPeriodStart" className="block text-base text-ruhi-earth mb-1">When did your last period start?</label>
