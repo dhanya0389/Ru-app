@@ -2,11 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { isOnboardingComplete, getProfile, clearProfile } from '@/lib/storage'
+import { getWeeklyPlan } from '@/lib/weeklyPlan'
 import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
 import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
 import WeeklyMode from '@/components/WeeklyMode'
+
+// Compute the ISO date (YYYY-MM-DD) of the Monday of THIS week (local time).
+// Used to decide whether a saved weekly plan is current or stale.
+function getCurrentMonday() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const day = today.getDay() // 0 = Sun, 1 = Mon
+  const offsetToMonday = day === 0 ? -6 : 1 - day
+  const monday = new Date(today)
+  monday.setDate(monday.getDate() + offsetToMonday)
+  return monday.toISOString().slice(0, 10)
+}
 
 export default function Home() {
   const [screen, setScreen] = useState('loading')
@@ -16,11 +29,17 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    if (isOnboardingComplete()) {
-      setScreen('checkin')
-    } else {
+    if (!isOnboardingComplete()) {
       setScreen('landing')
+      return
     }
+    // Smart default: returning users land on Weekly mode if they have a
+    // current plan for THIS week (so they can see today's assigned meal,
+    // shopping list, etc.). Otherwise land on Daily Check-in. Top tabs let
+    // the user flip between the two on either screen.
+    const plan = getWeeklyPlan()
+    const hasCurrentPlan = plan && plan.weekOf === getCurrentMonday()
+    setScreen(hasCurrentPlan ? 'weekly' : 'checkin')
   }, [])
 
   // Centralized navigation entrypoint shared with NavMenu.
@@ -94,7 +113,9 @@ export default function Home() {
   if (screen === 'transition') {
     return (
       <TransitionScreen
-        onContinue={() => setScreen('checkin')}
+        // New users land on Weekly mode after onboarding — the weekly Sunday
+        // plan is the core product, daily check-in is the off-script fallback.
+        onContinue={() => setScreen('weekly')}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
         onNavigate={goTo}

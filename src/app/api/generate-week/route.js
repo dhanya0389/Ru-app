@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { calculateMacros, formatMacros, formatCalories } from '@/lib/macros'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -62,6 +63,13 @@ VOICE / WRITING RULES:
 - NEVER mention specific practitioners or doctors by name in any card content (no "Dr. So-and-so", no "per Pelz", no "Vitti says", no name-drops).
 - If you reference scientific basis, say "research suggests", "evidence shows", or "the science of cycle-syncing" — never name a person.
 - Card content is direct, warm, embodied; first person where natural. Speak as Ruhi.
+
+INGREDIENT QUANTITY RULES (critical for macro accuracy):
+- For non-liquid ingredients, prefer GRAMS: "150g chicken breast", "60g spinach", "100g cooked lentils".
+- For liquids, ml or cups are fine: "240ml broth" or "1 cup broth".
+- For naturally-counted items, use counts with size: "1 large egg", "2 medium tomatoes", "3 garlic cloves".
+- For tiny amounts (spices, salt, lemon squeeze), keep them human ("1 tsp turmeric", "salt to taste").
+- Avoid vague volumes like "1 cup chickpeas" — write "150g cooked chickpeas" instead, since cup-to-gram conversions differ wildly by ingredient density.
 
 PANTRY AWARENESS:
 - The user has provided a pantry list. Prefer dishes that use those items.
@@ -197,11 +205,31 @@ Use the return_weekly_menu tool to deliver:
       return Response.json({ error: 'Failed to generate weekly menu' }, { status: 500 })
     }
 
+    // Replace AI-guessed macros with USDA-calculated values for every dish
+    // across all 4 categories. Run all lookups in parallel — each dish's
+    // calculateMacros internally parallelizes its own ingredient lookups too.
+    const menu = toolUse.input.menu
+    const allDishes = [
+      ...(menu.breakfasts || []),
+      ...(menu.lunches || []),
+      ...(menu.snacks || []),
+      ...(menu.dinners || []),
+    ]
+    await Promise.all(allDishes.map(async (dish) => {
+      if (!dish.ingredients?.length) return
+      const calculated = await calculateMacros(dish.ingredients)
+      if (calculated) {
+        dish.macros = formatMacros(calculated)
+        dish.calories = formatCalories(calculated)
+        dish.macrosSource = 'usda'
+      }
+    }))
+
     // Compose the full WeeklyPlan response with the day-phase metadata
     const result = {
       weekOf: weekDays[0]?.date,
       days: weekDays,
-      menu: toolUse.input.menu,
+      menu,
       assignments: toolUse.input.assignments,
       shoppingList: toolUse.input.shoppingList,
       phaseTransitionCallouts: toolUse.input.phaseTransitionCallouts,
