@@ -117,8 +117,13 @@ export function saveOptIns(optIns) {
  */
 export function computeWeekPhases(weekStartISO, lastPeriodStartISO, cycleLengthDays = 28) {
   const days = []
-  const start = new Date(weekStartISO)
-  const lastPeriod = new Date(lastPeriodStartISO)
+  // Parse both ISO strings as LOCAL midnight (not UTC) — see lib/phases.js
+  // for the same fix in getCurrentPhase. Without this, timezone offsets
+  // shift the cycle-day calculation by one day in evening/late hours.
+  const [sy, sm, sd] = weekStartISO.split('-').map(Number)
+  const start = new Date(sy, sm - 1, sd)
+  const [py, pm, pd] = lastPeriodStartISO.split('-').map(Number)
+  const lastPeriod = new Date(py, pm - 1, pd)
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   for (let i = 0; i < 7; i++) {
     const d = new Date(start)

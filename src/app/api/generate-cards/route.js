@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { calculateMacros, formatMacros, formatCalories } from '@/lib/macros'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -64,6 +65,13 @@ VOICE / WRITING RULES:
 - NEVER mention specific practitioners or doctors by name in any card content (no "Dr. So-and-so", no "per Pelz", no name-drops).
 - If you want to reference scientific basis, say "research suggests", "evidence shows", or "the science of cycle-syncing" — never name a person.
 - Card content is direct, warm, embodied; first person where natural. Speak as Ruhi, not as a textbook.
+
+INGREDIENT QUANTITY RULES (critical for macro accuracy):
+- For non-liquid ingredients, prefer GRAMS: "150g chicken breast", "60g spinach", "100g cooked lentils".
+- For liquids, ml or cups are fine: "240ml broth" or "1 cup broth".
+- For naturally-counted items, use counts with size: "1 large egg", "2 medium tomatoes", "3 garlic cloves".
+- For tiny amounts (spices, salt, lemon squeeze), keep them human ("1 tsp turmeric", "salt to taste").
+- Avoid vague volumes like "1 cup chickpeas" — write "150g cooked chickpeas" instead, since cup-to-gram conversions differ wildly by ingredient density.
 
 Generate personalized daily wellness cards based on the user's profile, cycle phase, energy level, and what's in their kitchen.`
 
@@ -157,7 +165,21 @@ Use the return_cards tool to deliver your three cards.`
       console.error('Claude did not call return_cards. Stop reason:', message.stop_reason)
       return Response.json({ error: 'Failed to generate cards' }, { status: 500 })
     }
-    return Response.json(toolUse.input)
+
+    // Replace the model's macro guess with calculated values from USDA
+    // FoodData Central. The model is bad at math; this is a real lookup.
+    // Falls through to the model's values if USDA_API_KEY is missing or
+    // the lookup fails.
+    const cards = toolUse.input
+    if (cards.meal?.ingredients?.length) {
+      const calculated = await calculateMacros(cards.meal.ingredients)
+      if (calculated) {
+        cards.meal.macros = formatMacros(calculated)
+        cards.meal.calories = formatCalories(calculated)
+        cards.meal.macrosSource = 'usda'
+      }
+    }
+    return Response.json(cards)
   } catch (error) {
     console.error('Claude API error:', error)
     return Response.json(

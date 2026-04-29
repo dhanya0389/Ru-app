@@ -3,8 +3,15 @@
 export function getCurrentPhase(lastPeriodStart, cycleLength = 28) {
   if (!lastPeriodStart) return null
 
-  const start = new Date(lastPeriodStart)
+  // Parse YYYY-MM-DD as LOCAL midnight (not UTC) so the comparison against
+  // "today" (which is local time) doesn't drift across timezones. The bug:
+  // new Date("2026-03-29") parses as UTC midnight, but new Date() returns
+  // local time — comparing them adds the timezone offset to the day count
+  // and can flip a user from "luteal day 31" to "menstrual day 1" overnight.
+  const [y, m, d] = lastPeriodStart.split('-').map(Number)
+  const start = new Date(y, m - 1, d)
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   const dayOfCycle = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1
   const adjustedDay = ((dayOfCycle - 1) % cycleLength) + 1
 

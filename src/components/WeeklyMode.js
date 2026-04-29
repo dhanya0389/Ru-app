@@ -10,6 +10,7 @@ import {
   computeWeekPhases,
 } from '@/lib/weeklyPlan'
 import NavMenu from '@/components/NavMenu'
+import TopTabs from '@/components/TopTabs'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -119,10 +120,12 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   // ── No plan state ──────────────────────────────────────────
   if (!plan && !generating) {
     return (
-      <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-12 max-w-md mx-auto relative z-10">
+      <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-6 max-w-md mx-auto relative z-10">
         <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
 
-        <h2 className="font-display text-2xl text-ruhi-deep mb-2 mt-8 screen-enter">Plan your week</h2>
+        <TopTabs active="weekly" onSelect={onNavigate} />
+
+        <h2 className="font-display text-2xl text-ruhi-deep mb-2 mt-4 screen-enter">Plan your week</h2>
         <p className="text-ruhi-earth mb-8 text-center max-w-xs leading-relaxed screen-enter">
           One Sunday plan. Cycle-aware meals for all 7 days. Shopping list ready to order.
         </p>
@@ -189,8 +192,10 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     <div className="ruhi-bg min-h-screen flex flex-col items-center px-4 py-6 max-w-md mx-auto relative z-10">
       <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
 
+      <TopTabs active="weekly" onSelect={onNavigate} />
+
       {/* Header — week range + phase progression */}
-      <div className="w-full mb-4 mt-2">
+      <div className="w-full mb-4">
         <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Week of</p>
         <h2 className="font-display text-xl text-ruhi-deep mb-3">
           {formatDate(plan.days[0].date)} – {formatDate(plan.days[6].date)}

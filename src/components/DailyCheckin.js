@@ -6,6 +6,7 @@ import { getCurrentPhase, phaseInfo } from '@/lib/phases'
 import VoiceInput from '@/components/VoiceInput'
 import CardView from '@/components/CardView'
 import NavMenu from '@/components/NavMenu'
+import TopTabs from '@/components/TopTabs'
 
 const COOKING_MOODS = [
   { key: 'quick', label: 'Quick & done', time: 'Under 15 min' },
@@ -63,8 +64,10 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
   const phaseLabel = phase ? `${phase.name} · Day ${phase.day}` : null
 
   return (
-    <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-12 max-w-md mx-auto relative z-10">
+    <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-6 max-w-md mx-auto relative z-10">
       <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+
+      <TopTabs active="today" onSelect={onNavigate} />
 
       {/* Phase indicator */}
       {phaseLabel && (
