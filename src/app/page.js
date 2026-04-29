@@ -6,6 +6,7 @@ import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
 import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
+import WeeklyMode from '@/components/WeeklyMode'
 
 export default function Home() {
   const [screen, setScreen] = useState('loading')
@@ -28,6 +29,10 @@ export default function Home() {
     setMenuOpen(false)
     if (target === 'today') {
       setScreen('checkin')
+      return
+    }
+    if (target === 'weekly') {
+      setScreen('weekly')
       return
     }
     if (target === 'welcome') {
@@ -100,6 +105,16 @@ export default function Home() {
   if (screen === 'checkin') {
     return (
       <DailyCheckin
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={goTo}
+      />
+    )
+  }
+
+  if (screen === 'weekly') {
+    return (
+      <WeeklyMode
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
         onNavigate={goTo}
