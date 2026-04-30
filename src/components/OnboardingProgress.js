@@ -102,7 +102,14 @@ function LotusIcon({ state }) {
       className={`lotus-svg lotus-${state} block w-full h-auto`}
       aria-hidden="true"
     >
-      {/* Closed bud — three peaks at top, narrow body, base cup + stem */}
+      {/* Closed bud — three peaks at top, narrow body, base cup + stem.
+          Inner <g> applies a static 0.85 scale around the icon center
+          (14, 14) so the bud reads as smaller next to the bloom while
+          preserving its silhouette exactly. The matrix form
+          (0.85 0 0 0.85 2.1 2.1) is the math for translate(14,14) +
+          scale(0.85) + translate(-14,-14). The outer .lotus-bud-group
+          stays free for CSS animation transforms (state crossfade +
+          breathing pulse) — they compose with the inner static one. */}
       <g
         className="lotus-bud-group"
         fill="none"
@@ -110,24 +117,26 @@ function LotusIcon({ state }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path
-          strokeWidth="1.4"
-          d="M 7.5 9
-             C 7.5 7.8, 8.6 7.2, 9.5 8
-             C 10.3 8.7, 10.7 9.6, 11 10.6
-             C 11.4 8.4, 12.4 5.6, 14 3.5
-             C 15.6 5.6, 16.6 8.4, 17 10.6
-             C 17.3 9.6, 17.7 8.7, 18.5 8
-             C 19.4 7.2, 20.5 7.8, 20.5 9
-             C 21.6 11.5, 21.6 15.5, 20 18
-             C 18.4 20.4, 16.2 21.4, 14 21.4
-             C 11.8 21.4, 9.6 20.4, 8 18
-             C 6.4 15.5, 6.4 11.5, 7.5 9 Z"
-        />
-        <path strokeWidth="1" d="M 11 10.6 C 11.4 14, 11.4 18, 12.5 21" />
-        <path strokeWidth="1" d="M 17 10.6 C 16.6 14, 16.6 18, 15.5 21" />
-        <path strokeWidth="1" d="M 11.8 21.3 Q 14 22.6, 16.2 21.3" />
-        <path strokeWidth="1" d="M 14 22.5 V 25" />
+        <g transform="matrix(0.85 0 0 0.85 2.1 2.1)">
+          <path
+            strokeWidth="1.4"
+            d="M 7.5 9
+               C 7.5 7.8, 8.6 7.2, 9.5 8
+               C 10.3 8.7, 10.7 9.6, 11 10.6
+               C 11.4 8.4, 12.4 5.6, 14 3.5
+               C 15.6 5.6, 16.6 8.4, 17 10.6
+               C 17.3 9.6, 17.7 8.7, 18.5 8
+               C 19.4 7.2, 20.5 7.8, 20.5 9
+               C 21.6 11.5, 21.6 15.5, 20 18
+               C 18.4 20.4, 16.2 21.4, 14 21.4
+               C 11.8 21.4, 9.6 20.4, 8 18
+               C 6.4 15.5, 6.4 11.5, 7.5 9 Z"
+          />
+          <path strokeWidth="1" d="M 11 10.6 C 11.4 14, 11.4 18, 12.5 21" />
+          <path strokeWidth="1" d="M 17 10.6 C 16.6 14, 16.6 18, 15.5 21" />
+          <path strokeWidth="1" d="M 11.8 21.3 Q 14 22.6, 16.2 21.3" />
+          <path strokeWidth="1" d="M 14 22.5 V 25" />
+        </g>
       </g>
 
       {/* Open bloom — five petals fanned out over a leaf-pad bowl, filled */}
