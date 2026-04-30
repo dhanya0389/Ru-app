@@ -89,19 +89,20 @@ export default function OnboardingProgress({ current, total, hidden = false }) {
  * One lotus mark with two stacked groups (bud + bloom). CSS in globals.css
  * crossfades and scales between them based on the lotus-{state} class.
  *
- * Bud and bloom share the same base line (y≈19) so both sit cleanly on the
- * vine. The bud has no stem because the vine takes over that role.
+ * Bud: outlined three-peak silhouette with interior petal seams, base cup,
+ *      and a small stem reaching down toward the vine.
+ * Bloom: filled five-petal silhouette over a leaf-pad bowl.
  *
  * Strokes/fills use currentColor so the parent's text color drives the tone.
  */
 function LotusIcon({ state }) {
   return (
     <svg
-      viewBox="0 0 28 22"
+      viewBox="0 0 28 28"
       className={`lotus-svg lotus-${state} block w-full h-auto`}
       aria-hidden="true"
     >
-      {/* Closed bud — three-peak silhouette, no stem. Base sits at y=19. */}
+      {/* Closed bud — three peaks at top, narrow body, base cup + stem */}
       <g
         className="lotus-bud-group"
         fill="none"
@@ -111,41 +112,45 @@ function LotusIcon({ state }) {
       >
         <path
           strokeWidth="1.4"
-          d="M 14 5
-             C 12.5 6, 11 8, 11 11
-             C 10.5 9.5, 9 9, 8 10
-             C 6.8 11.5, 6.8 14.5, 8 17
-             C 9 18.5, 11 19, 14 19
-             C 17 19, 19 18.5, 20 17
-             C 21.2 14.5, 21.2 11.5, 20 10
-             C 19 9, 17.5 9.5, 17 11
-             C 17 8, 15.5 6, 14 5 Z"
+          d="M 7.5 9
+             C 7.5 7.8, 8.6 7.2, 9.5 8
+             C 10.3 8.7, 10.7 9.6, 11 10.6
+             C 11.4 8.4, 12.4 5.6, 14 3.5
+             C 15.6 5.6, 16.6 8.4, 17 10.6
+             C 17.3 9.6, 17.7 8.7, 18.5 8
+             C 19.4 7.2, 20.5 7.8, 20.5 9
+             C 21.6 11.5, 21.6 15.5, 20 18
+             C 18.4 20.4, 16.2 21.4, 14 21.4
+             C 11.8 21.4, 9.6 20.4, 8 18
+             C 6.4 15.5, 6.4 11.5, 7.5 9 Z"
         />
-        <path strokeWidth="1" d="M 11 11 C 11.5 13.5, 11.5 16.5, 12.5 18.7" />
-        <path strokeWidth="1" d="M 17 11 C 16.5 13.5, 16.5 16.5, 15.5 18.7" />
+        <path strokeWidth="1" d="M 11 10.6 C 11.4 14, 11.4 18, 12.5 21" />
+        <path strokeWidth="1" d="M 17 10.6 C 16.6 14, 16.6 18, 15.5 21" />
+        <path strokeWidth="1" d="M 11.8 21.3 Q 14 22.6, 16.2 21.3" />
+        <path strokeWidth="1" d="M 14 22.5 V 25" />
       </g>
 
-      {/* Open bloom — five petals fan over a leaf-pad bowl. Bowl base at y=19. */}
+      {/* Open bloom — five petals fanned out over a leaf-pad bowl, filled */}
       <g className="lotus-bloom-group" fill="currentColor">
         <path
-          d="M 14 14 C 11.5 12, 11.5 6.5, 14 3 C 16.5 6.5, 16.5 12, 14 14 Z"
-          transform="rotate(-65 14 14)"
+          d="M 14 15 C 11.5 12.5, 11.5 7, 14 3 C 16.5 7, 16.5 12.5, 14 15 Z"
+          transform="rotate(-65 14 15)"
         />
         <path
-          d="M 14 14 C 11.5 12, 11.5 6, 14 2.5 C 16.5 6, 16.5 12, 14 14 Z"
-          transform="rotate(-32 14 14)"
+          d="M 14 15 C 11.5 12.5, 11.5 6.5, 14 3 C 16.5 6.5, 16.5 12.5, 14 15 Z"
+          transform="rotate(-32 14 15)"
         />
-        <path d="M 14 14 C 11.5 12, 11.5 5.5, 14 2 C 16.5 5.5, 16.5 12, 14 14 Z" />
+        <path d="M 14 15 C 11.5 12.5, 11.5 6, 14 2.5 C 16.5 6, 16.5 12.5, 14 15 Z" />
         <path
-          d="M 14 14 C 11.5 12, 11.5 6, 14 2.5 C 16.5 6, 16.5 12, 14 14 Z"
-          transform="rotate(32 14 14)"
+          d="M 14 15 C 11.5 12.5, 11.5 6.5, 14 3 C 16.5 6.5, 16.5 12.5, 14 15 Z"
+          transform="rotate(32 14 15)"
         />
         <path
-          d="M 14 14 C 11.5 12, 11.5 6.5, 14 3 C 16.5 6.5, 16.5 12, 14 14 Z"
-          transform="rotate(65 14 14)"
+          d="M 14 15 C 11.5 12.5, 11.5 7, 14 3 C 16.5 7, 16.5 12.5, 14 15 Z"
+          transform="rotate(65 14 15)"
         />
         {/* Leaf-pad bowl under the petals */}
-        <path d="M 4 15 Q 14 19, 24 15 Q 14 17, 4 15 Z" />
+        <path d="M 4 16.5 Q 14 22.5, 24 16.5 Q 14 19, 4 16.5 Z" />
       </g>
     </svg>
   )
