@@ -168,3 +168,37 @@ body {
 *, *::before, *::after {
   transition: border-color 0.3s ease, background-color 0.3s ease;
 }
+
+/* Onboarding progress — bud → bloom crossfade per step.
+   The bud and bloom groups share the same SVG; we swap them via opacity +
+   scale. transform-box: fill-box anchors scaling to each group's own bounds
+   so the petals open from the center, not the SVG origin. */
+.lotus-svg .lotus-bud-group,
+.lotus-svg .lotus-bloom-group {
+  transform-box: fill-box;
+  transform-origin: center center;
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Future: closed bud, faded (no animation). */
+.lotus-svg.lotus-future .lotus-bud-group   { opacity: 1; transform: scale(1); }
+.lotus-svg.lotus-future .lotus-bloom-group { opacity: 0; transform: scale(0.5); }
+
+/* Current: closed bud at full color, gently breathing. The pulse rides on
+   top of the static transform via the keyframes (animations override
+   transforms during their lifetime). */
+.lotus-svg.lotus-current .lotus-bud-group {
+  opacity: 1;
+  transform: scale(1);
+  animation: lotus-breathe 2.4s ease-in-out infinite;
+}
+.lotus-svg.lotus-current .lotus-bloom-group { opacity: 0; transform: scale(0.5); }
+
+/* Done: bloom fills in, bud fades out. */
+.lotus-svg.lotus-done .lotus-bud-group   { opacity: 0; transform: scale(0.6); }
+.lotus-svg.lotus-done .lotus-bloom-group { opacity: 1; transform: scale(1); }
+
+@keyframes lotus-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.85; }
+  50%      { transform: scale(1.05); opacity: 1;    }
+}
