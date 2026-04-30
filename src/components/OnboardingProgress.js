@@ -74,7 +74,10 @@ function LotusIcon({ state }) {
       className={`lotus-svg lotus-${state} block w-full h-auto`}
       aria-hidden="true"
     >
-      {/* Closed bud — three peaks at top, narrow body, tiny base cup + stem */}
+      {/* Closed bud — three distinct petals (tall center + two side petals
+          leaning outward), small V-cup base, short stem. Silhouette is
+          one closed path; two interior division lines mark where the
+          side petals overlap the center petal. */}
       <g
         className="lotus-bud-group"
         fill="none"
@@ -82,24 +85,28 @@ function LotusIcon({ state }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
+        {/* Outer silhouette: left peak → saddle → center peak → saddle →
+            right peak → outer-right curve → base */}
         <path
           strokeWidth="1.4"
-          d="M 7.5 9
-             C 7.5 7.8, 8.6 7.2, 9.5 8
-             C 10.3 8.7, 10.7 9.6, 11 10.6
-             C 11.4 8.4, 12.4 5.6, 14 3.5
-             C 15.6 5.6, 16.6 8.4, 17 10.6
-             C 17.3 9.6, 17.7 8.7, 18.5 8
-             C 19.4 7.2, 20.5 7.8, 20.5 9
-             C 21.6 11.5, 21.6 15.5, 20 18
-             C 18.4 20.4, 16.2 21.4, 14 21.4
-             C 11.8 21.4, 9.6 20.4, 8 18
-             C 6.4 15.5, 6.4 11.5, 7.5 9 Z"
+          d="M 11 19
+             C 9 18, 7.5 14, 7.5 10
+             C 7.5 7, 9 5, 10 5
+             C 11 6, 11.5 8, 11.5 10
+             C 12 7, 13 4.5, 14 3
+             C 15 4.5, 16 7, 16.5 10
+             C 16.5 8, 17 6, 18 5
+             C 19 5, 20.5 7, 20.5 10
+             C 20.5 14, 19 18, 17 19
+             Z"
         />
-        <path strokeWidth="1" d="M 11 10.6 C 11.4 14, 11.4 18, 12.5 21" />
-        <path strokeWidth="1" d="M 17 10.6 C 16.6 14, 16.6 18, 15.5 21" />
-        <path strokeWidth="1" d="M 11.8 21.3 Q 14 22.6, 16.2 21.3" />
-        <path strokeWidth="1" d="M 14 22.5 V 25" />
+        {/* Petal division lines — saddle down to base */}
+        <path strokeWidth="1" d="M 11.5 10 C 11.5 13, 11.5 16, 12 19" />
+        <path strokeWidth="1" d="M 16.5 10 C 16.5 13, 16.5 16, 16 19" />
+        {/* Cup base — V hanging below */}
+        <path strokeWidth="1.2" d="M 11 19 L 14 22 L 17 19" />
+        {/* Stem */}
+        <path strokeWidth="1.2" d="M 14 22 V 25" />
       </g>
 
       {/* Open bloom — five petals fanned out over a leaf-pad bowl, filled */}
