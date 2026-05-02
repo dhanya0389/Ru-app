@@ -297,7 +297,11 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     return (
       <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-6 max-w-md mx-auto relative z-10">
         <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
-        <RecipeView item={expandedRecipe} onBack={() => setExpandedRecipe(null)} />
+        <RecipeView
+          item={expandedRecipe}
+          onBack={() => setExpandedRecipe(null)}
+          onShowSources={() => onNavigate?.('sources')}
+        />
       </div>
     )
   }
@@ -455,7 +459,10 @@ function MenuSection({ title, items, onOpenRecipe }) {
   )
 }
 
-function RecipeView({ item, onBack }) {
+function RecipeView({ item, onBack, onShowSources }) {
+  const visiblePractitioners = item.practitioners?.slice(0, 2).join(', ')
+  const overflow =
+    item.practitioners?.length > 2 ? ` +${item.practitioners.length - 2}` : ''
   return (
     <div className="w-full screen-enter">
       <button
@@ -472,10 +479,20 @@ function RecipeView({ item, onBack }) {
       </div>
       <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
       {item.phaseFit?.length > 0 && (
-        <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-6">
+        <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-2">
           Best for: {item.phaseFit.join(' · ')}
         </p>
       )}
+      <div className="mb-6">
+        {item.practitioners?.length > 0 && (
+          <button
+            onClick={onShowSources}
+            className="text-xs text-ruhi-earth/80 hover:text-ruhi-deep transition-colors underline-offset-2 hover:underline"
+          >
+            Why this? — {visiblePractitioners}{overflow}
+          </button>
+        )}
+      </div>
 
       <div className="bg-white/70 rounded-2xl p-5 mb-4 border border-white/60 shadow-sm">
         <h4 className="text-sm font-bold text-ruhi-deep mb-3">Ingredients</h4>

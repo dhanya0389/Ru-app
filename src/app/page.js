@@ -8,6 +8,7 @@ import Onboarding from '@/components/Onboarding'
 import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
 import WeeklyMode from '@/components/WeeklyMode'
+import Sources from '@/components/Sources'
 
 // ISO date (YYYY-MM-DD) for "today" in local time.
 // Used to decide whether a saved weekly plan is still current.
@@ -22,6 +23,9 @@ export default function Home() {
   // NavMenu open state lives here so we can re-open it after a single-section
   // save returns to Daily Check-in (chained-edit flow).
   const [menuOpen, setMenuOpen] = useState(false)
+  // Where to return to after closing the Sources screen (depends on which
+  // surface launched it — Daily Check-in cards vs. Weekly recipe view).
+  const [sourcesReturnTo, setSourcesReturnTo] = useState('checkin')
 
   useEffect(() => {
     if (!isOnboardingComplete()) {
@@ -50,6 +54,14 @@ export default function Home() {
     }
     if (target === 'weekly') {
       setScreen('weekly')
+      return
+    }
+    if (target === 'sources') {
+      // Remember the launching surface so the Back button returns there
+      // instead of always defaulting to one screen. Welcome doesn't show the
+      // Sources entry today, so we only need to track the two app surfaces.
+      setSourcesReturnTo(screen === 'weekly' ? 'weekly' : 'checkin')
+      setScreen('sources')
       return
     }
     if (target === 'welcome') {
@@ -134,6 +146,17 @@ export default function Home() {
   if (screen === 'weekly') {
     return (
       <WeeklyMode
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={goTo}
+      />
+    )
+  }
+
+  if (screen === 'sources') {
+    return (
+      <Sources
+        onBack={() => setScreen(sourcesReturnTo)}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
         onNavigate={goTo}

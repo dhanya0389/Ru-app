@@ -77,6 +77,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
           {/* Top-level destinations */}
           <MenuItem onClick={() => onNavigate('today')} label="Today" />
           <MenuItem onClick={() => onNavigate('weekly')} label="This week" />
+          <MenuItem onClick={() => onNavigate('sources')} label="Sources" />
           <MenuItem onClick={() => onNavigate('welcome')} label="Welcome" />
 
           <Divider />

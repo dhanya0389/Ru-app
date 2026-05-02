@@ -135,6 +135,8 @@ function pickFallbackMeal(cookingMood, excludeTitle) {
 // ── Main component ──────────────────────────────────────────────────
 
 export default function CardView({ profile, phase, energy, cookingMood, kitchen, onBack, menuOpen, setMenuOpen, onNavigate }) {
+  const showSources = () => onNavigate?.('sources')
+
   const [cards, setCards] = useState(null)
   const [expandedCard, setExpandedCard] = useState(null) // null or 'meal' | 'movement' | 'energy'
   const [loading, setLoading] = useState(true)
@@ -225,13 +227,13 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
             </button>
 
             {expandedCard === 'meal' && cards?.meal && (
-              <ExpandedMealCard meal={cards.meal} onSurprise={surpriseMe} />
+              <ExpandedMealCard meal={cards.meal} onSurprise={surpriseMe} onShowSources={showSources} />
             )}
             {expandedCard === 'movement' && cards?.movement && (
-              <ExpandedMovementCard movement={cards.movement} />
+              <ExpandedMovementCard movement={cards.movement} onShowSources={showSources} />
             )}
             {expandedCard === 'energy' && cards?.energy && (
-              <ExpandedEnergyCard energy={cards.energy} />
+              <ExpandedEnergyCard energy={cards.energy} onShowSources={showSources} />
             )}
           </div>
         </div>
@@ -355,9 +357,30 @@ function EnergyCardPreview({ energy }) {
   return <FaceDownCard category="Energy & Mindset" accentBg="bg-ruhi-terracotta" title={energy.title} />
 }
 
+// ── Practitioner attribution ────────────────────────────────────────
+//
+// Surnames live in `card.practitioners` (allowlist-enforced server-side).
+// Caps visible names at 2 so a 3-name list like "Inchauspé, Bikman, Gottfried"
+// doesn't wrap on a 390px screen — the +N indicator points to the Sources
+// screen for the full list.
+
+function WhyThis({ practitioners, onShowSources }) {
+  if (!practitioners?.length) return null
+  const visible = practitioners.slice(0, 2).join(', ')
+  const overflow = practitioners.length > 2 ? ` +${practitioners.length - 2}` : ''
+  return (
+    <button
+      onClick={onShowSources}
+      className="text-xs text-ruhi-earth/80 hover:text-ruhi-deep transition-colors underline-offset-2 hover:underline"
+    >
+      Why this? — {visible}{overflow}
+    </button>
+  )
+}
+
 // ── Expanded cards (full screen) ────────────────────────────────────
 
-function ExpandedMealCard({ meal, onSurprise }) {
+function ExpandedMealCard({ meal, onSurprise, onShowSources }) {
   // Meal photo intentionally not rendered — LoremFlickr's CC pool produces
   // wildly off-topic photos (brownie + ice cream for "tamarind dal"). The
   // imageQuery field is still returned by the API; re-enable when wired to
@@ -373,7 +396,11 @@ function ExpandedMealCard({ meal, onSurprise }) {
         <span aria-hidden="true">·</span>
         <span>{meal.calories}</span>
       </div>
-      <p className="text-sm text-ruhi-earth mb-6">{meal.macros}</p>
+      <p className="text-sm text-ruhi-earth mb-3">{meal.macros}</p>
+
+      <div className="mb-6">
+        <WhyThis practitioners={meal.practitioners} onShowSources={onShowSources} />
+      </div>
 
       <div className="bg-white/70 rounded-2xl p-5 mb-4">
         <h4 className="text-sm font-bold text-ruhi-deep mb-3">Ingredients</h4>
@@ -412,7 +439,7 @@ function ExpandedMealCard({ meal, onSurprise }) {
   )
 }
 
-function ExpandedMovementCard({ movement }) {
+function ExpandedMovementCard({ movement, onShowSources }) {
   const videoUrl = youtubeSearchUrl(movement.videoSearch)
   return (
     <div className="screen-enter">
@@ -420,7 +447,11 @@ function ExpandedMovementCard({ movement }) {
         <span className="text-xl">🏃‍♀️</span>
       </div>
       <h2 className="font-display text-2xl text-ruhi-deep mb-2">{movement.title}</h2>
-      <p className="text-sm text-ruhi-earth mb-6">{movement.duration}</p>
+      <p className="text-sm text-ruhi-earth mb-3">{movement.duration}</p>
+
+      <div className="mb-6">
+        <WhyThis practitioners={movement.practitioners} onShowSources={onShowSources} />
+      </div>
 
       <div className="bg-white/70 rounded-2xl p-5 mb-4">
         <p className="text-ruhi-deep leading-relaxed">{movement.description}</p>
@@ -445,7 +476,7 @@ function ExpandedMovementCard({ movement }) {
   )
 }
 
-function ExpandedEnergyCard({ energy }) {
+function ExpandedEnergyCard({ energy, onShowSources }) {
   return (
     <div className="screen-enter">
       <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-terracotta/20 flex items-center justify-center mb-5">
@@ -457,10 +488,12 @@ function ExpandedEnergyCard({ energy }) {
         <p className="text-ruhi-deep leading-relaxed">{energy.description}</p>
       </div>
 
-      <div className="bg-ruhi-warm/40 rounded-2xl p-5 border border-ruhi-warm">
+      <div className="bg-ruhi-warm/40 rounded-2xl p-5 border border-ruhi-warm mb-4">
         <p className="text-sm font-medium text-ruhi-deep mb-1">Today's tip</p>
         <p className="text-sm text-ruhi-deep italic">{energy.tip}</p>
       </div>
+
+      <WhyThis practitioners={energy.practitioners} onShowSources={onShowSources} />
     </div>
   )
 }

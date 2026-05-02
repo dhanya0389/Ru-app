@@ -1,5 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateMacros, formatMacros, formatCalories } from '@/lib/macros'
+import {
+  ALLOWED_SURNAMES,
+  buildScienceFoundationBlock,
+  normalizePhaseForRules,
+} from '@/lib/practitioners'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -19,25 +24,12 @@ export async function POST(request) {
     therapy: '30–45+ minutes',
   }
 
-  const systemPrompt = `You are Ruhi, a personal health system built on the science of 10 leading practitioners:
-- Alisa Vitti (cycle syncing, phase-based nutrition)
-- Dr. Mindy Pelz (fasting, ketobiotic cycling, progesterone support)
-- Jessie Inchauspé (glucose goddess — meal sequencing: vegetables first, protein+fat second, carbs last)
-- Dr. Benjamin Bikman (insulin resistance, metabolic health)
-- Dr. Sara Gottfried (hormone optimization, cortisol)
-- Dr. Jolene Brighten (post-pill recovery, hormone balance)
-- Dr. Stacy Sims (women's exercise physiology — women are NOT small men)
-- Dr. Mark Hyman (functional medicine, food as medicine)
-- Dr. William Li (angiogenesis, eat to starve disease)
-- Dr. Casey Means (metabolic health, glucose monitoring)
+  const phaseForRules = normalizePhaseForRules(phase?.name)
+  const scienceFoundation = buildScienceFoundationBlock(phaseForRules)
 
-FOOD KNOWLEDGE: You know 47 food categories across 10 groups — proteins (9 categories), vegetables (6), carbs+fruits (6), fats+seeds (5), gut health (3), blood sugar+anti-inflammatory (3), minerals (5), skin+hair (4), supplements, functional liquids (2). You prioritize foods by menstrual cycle phase.
+  const systemPrompt = `You are Ruhi, a personal health system grounded in the work of 10 women's-health practitioners. The SCIENCE FOUNDATION block below lists the rules — derived from those practitioners — that ground every recommendation you generate.
 
-PHASE-SPECIFIC RULES:
-- Menstrual: iron-rich foods, warming meals, bone broth, root vegetables; gentle movement only
-- Follicular: cruciferous vegetables, fermented foods, lighter proteins; creative energy
-- Ovulatory: raw vegetables OK, higher-intensity movement OK; lighter meals
-- Luteal: progesterone-supporting foods (tropical fruits essential), complex carbs (NOT refined grains), magnesium-rich, comfort without junk
+${scienceFoundation}
 
 CARB RULES — universal (apply in every mode):
 - "Complex carbs" means LOW-GI, fiber-rich whole grains and legumes ONLY:
@@ -49,22 +41,19 @@ CARB STRICTNESS — driven by user's profile.carbStrictness setting:
 - "gentle" mode (DEFAULT for most users — building discipline, easing in):
   Include moderate complex carbs (~30–40g) at every meal in every phase.
   Sourdough, oats, quinoa, farro, brown rice (small portion), steamed sweet potato welcome at any meal.
-  Inchauspé sequencing (vegetables → protein+fat → carbs) is still strict.
+  Glucose-flattening sequencing (vegetables → protein+fat → carbs) is still strict.
 - "standard" mode (full cycle-syncing, phase-aware):
   Days 1–13 (menstrual + follicular): lower carb, focus on protein + healthy fats. Carbs 15–25g per meal.
   Days 14–28 (ovulatory + luteal): complex carbs welcome (30–45g per meal). Luteal especially benefits from complex carbs for progesterone support and serotonin.
 
-MEAL RULES:
-- Inchauspé sequencing: vegetables first, protein+fat second, carbs last
-- Minimum protein per meal: 25g (luteal: aim for 30g+)
-- Sweet potato: NEVER roast — microwave or steam only
-- Pair fruit with protein or fat, never alone
-- Prioritize anti-inflammatory ingredients (turmeric+black pepper, ginger, fatty fish, berries)
+ADDITIONAL MEAL CONSTRAINTS:
+- Sweet potato: NEVER roast — microwave or steam only.
+- Pair fruit with protein or fat, never alone.
+- Prioritize anti-inflammatory ingredients (turmeric+black pepper, ginger, fatty fish, berries).
 
 VOICE / WRITING RULES:
-- NEVER mention specific practitioners or doctors by name in any card content (no "Dr. So-and-so", no "per Pelz", no name-drops).
-- If you want to reference scientific basis, say "research suggests", "evidence shows", or "the science of cycle-syncing" — never name a person.
-- Card content is direct, warm, embodied; first person where natural. Speak as Ruhi, not as a textbook.
+- Card body copy ("description", "tip", "steps") stays in Ruhi's voice — direct, warm, embodied; first person where natural. Do NOT name-drop practitioners inside body copy ("Vitti says…", "per Pelz…"). The practitioner attribution lives ONLY in the structured \`practitioners\` field on each card; the UI surfaces it separately.
+- Avoid the phrases "scientifically proven" or "clinically proven" anywhere in card copy.
 
 INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - For non-liquid ingredients, prefer GRAMS: "150g chicken breast", "60g spinach", "100g cooked lentils".
@@ -115,8 +104,9 @@ Use the return_cards tool to deliver your three cards.`
             type: 'string',
             description: 'A 2-3 word stock-photo search query for this meal that would surface a beautiful, achievable bowl/plate photo. Examples: "lentil dal bowl", "salmon spinach plate", "chickpea curry bowl". Avoid brand names or specific cuisines unless central to the dish.',
           },
+          practitioners: practitionersFieldSchema('this meal'),
         },
-        required: ['title', 'cookTime', 'calories', 'macros', 'ingredients', 'steps', 'imageQuery'],
+        required: ['title', 'cookTime', 'calories', 'macros', 'ingredients', 'steps', 'imageQuery', 'practitioners'],
       },
       movement: {
         type: 'object',
@@ -128,8 +118,9 @@ Use the return_cards tool to deliver your three cards.`
             type: 'string',
             description: 'A YouTube search query (3-6 words) that would surface a good follow-along video for this movement at the suggested duration. For yoga, prefer Yoga with Kassandra (use "Yoga with Kassandra" in the query). Example: "Yoga with Kassandra 20 min luteal" or "10 minute walking workout".',
           },
+          practitioners: practitionersFieldSchema('this movement recommendation'),
         },
-        required: ['title', 'duration', 'description', 'videoSearch'],
+        required: ['title', 'duration', 'description', 'videoSearch', 'practitioners'],
       },
       energy: {
         type: 'object',
@@ -137,8 +128,9 @@ Use the return_cards tool to deliver your three cards.`
           title: { type: 'string', description: 'Mindset card title' },
           description: { type: 'string', description: 'Phase-appropriate energy and work guidance.' },
           tip: { type: 'string', description: 'One specific actionable tip for tonight.' },
+          practitioners: practitionersFieldSchema('this energy/mindset guidance'),
         },
-        required: ['title', 'description', 'tip'],
+        required: ['title', 'description', 'tip', 'practitioners'],
       },
     },
     required: ['meal', 'movement', 'energy'],
@@ -179,6 +171,24 @@ Use the return_cards tool to deliver your three cards.`
         cards.meal.macrosSource = 'usda'
       }
     }
+
+    // Allowlist-enforce the practitioners field on each card. The prompt asks
+    // for surname-only from a fixed 10-name set; this is the runtime backstop
+    // against drift (typos, "Dr. Vitti", first names, hallucinated names).
+    if (cards.meal) cards.meal.practitioners = sanitizePractitioners(cards.meal.practitioners)
+    if (cards.movement) cards.movement.practitioners = sanitizePractitioners(cards.movement.practitioners)
+    if (cards.energy) cards.energy.practitioners = sanitizePractitioners(cards.energy.practitioners)
+
+    // Observability — distribution audit hook. After two weeks, compare
+    // citation frequency across the 10; if any are never cited, expand or
+    // tune the rule corpus.
+    console.log('[generate-cards] practitioners cited', {
+      phase: phaseForRules,
+      meal: cards.meal?.practitioners ?? [],
+      movement: cards.movement?.practitioners ?? [],
+      energy: cards.energy?.practitioners ?? [],
+    })
+
     return Response.json(cards)
   } catch (error) {
     console.error('Claude API error:', error)
@@ -187,4 +197,32 @@ Use the return_cards tool to deliver your three cards.`
       { status: 500 }
     )
   }
+}
+
+// Tool-use schema fragment for the per-card `practitioners` field. Repeated
+// across meal/movement/energy so each card carries its own attribution.
+function practitionersFieldSchema(target) {
+  return {
+    type: 'array',
+    items: { type: 'string', enum: ALLOWED_SURNAMES },
+    minItems: 0,
+    maxItems: 3,
+    description: `Surnames (0–3) of the practitioners whose rules ground ${target}. Use ONLY surnames from the allowlist above. Empty array is valid — better silent than fabricated.`,
+  }
+}
+
+// Drop anything outside the canonical allowlist; cap at 3 names; preserve order.
+function sanitizePractitioners(list) {
+  if (!Array.isArray(list)) return []
+  const seen = new Set()
+  const cleaned = []
+  for (const name of list) {
+    if (typeof name !== 'string') continue
+    if (!ALLOWED_SURNAMES.includes(name)) continue
+    if (seen.has(name)) continue
+    seen.add(name)
+    cleaned.push(name)
+    if (cleaned.length === 3) break
+  }
+  return cleaned
 }
