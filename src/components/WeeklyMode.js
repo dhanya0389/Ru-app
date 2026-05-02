@@ -12,6 +12,7 @@ import {
 import NavMenu from '@/components/NavMenu'
 import TopTabs from '@/components/TopTabs'
 import VoiceInput from '@/components/VoiceInput'
+import SendShoppingListSheet from '@/components/SendShoppingListSheet'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -648,6 +649,8 @@ function ShoppingTab({ shoppingList }) {
   const [checked, setChecked] = useState(initialChecked)
   // 1x default, 2x or 3x to scale shopping quantities for multiple servings/people
   const [multiplier, setMultiplier] = useState(1)
+  // "Send to..." chooser sheet visibility
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Re-sync checked state if the shopping list itself changes (e.g. regenerate)
   useEffect(() => {
@@ -669,16 +672,10 @@ function ShoppingTab({ shoppingList }) {
     setChecked(shoppingList.map(() => false))
   }
 
-  function openInstacart() {
-    // Only items the user has checked get sent to Instacart.
-    // Quantities multiplied by current multiplier setting.
-    const items = shoppingList
-      .filter((_, idx) => checked[idx])
-      .map((it) => `${scaleQuantity(it.quantity, multiplier)} ${it.name}`.trim())
-      .join(' ')
-    const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(items)}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
+  // Selected items, formatted with scaled quantities, ready for the sheet.
+  const sheetItems = shoppingList
+    .filter((_, idx) => checked[idx])
+    .map((it) => `${scaleQuantity(it.quantity, multiplier)} ${it.name}`.trim())
 
   const grouped = {}
   shoppingList.forEach((it, idx) => {
@@ -761,7 +758,7 @@ function ShoppingTab({ shoppingList }) {
       ))}
 
       <button
-        onClick={openInstacart}
+        onClick={() => setSheetOpen(true)}
         disabled={checkedCount === 0}
         className={`w-full py-3 rounded-full text-sm transition-all flex items-center justify-center gap-2
           ${checkedCount === 0
@@ -771,11 +768,17 @@ function ShoppingTab({ shoppingList }) {
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
         </svg>
-        Send {checkedCount} item{checkedCount === 1 ? '' : 's'} to Instacart
+        Send {checkedCount} item{checkedCount === 1 ? '' : 's'} to grocery
       </button>
       <p className="text-[10px] text-ruhi-earth text-center -mt-1">
-        Stub for now — real Instacart Connect integration coming once your API key is approved.
+        Pick your grocery service — Instacart, Walmart, Amazon Fresh, Kroger, and more.
       </p>
+
+      <SendShoppingListSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        items={sheetItems}
+      />
     </div>
   )
 }
