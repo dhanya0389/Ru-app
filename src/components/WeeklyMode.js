@@ -11,6 +11,7 @@ import {
 } from '@/lib/weeklyPlan'
 import NavMenu from '@/components/NavMenu'
 import TopTabs from '@/components/TopTabs'
+import VoiceInput from '@/components/VoiceInput'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -41,6 +42,30 @@ const TIPS_DURING_GENERATION = [
  * Weekly mode — Sunday-style "plan the whole week" flow.
  * States: noPlan → generating → hasPlan (with Menu | Week | Shopping tabs)
  */
+// Local-time YYYY-MM-DD helper (avoids the UTC drift of toISOString)
+function toLocalISO(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function todayLocalISO() {
+  return toLocalISO(new Date())
+}
+
+function addDaysISO(iso, days) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() + days)
+  return toLocalISO(date)
+}
+
+function diffDaysISO(startISO, endISO) {
+  const [sy, sm, sd] = startISO.split('-').map(Number)
+  const [ey, em, ed] = endISO.split('-').map(Number)
+  const start = new Date(sy, sm - 1, sd)
+  const end = new Date(ey, em - 1, ed)
+  return Math.round((end - start) / (1000 * 60 * 60 * 24))
+}
+
 export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   const [plan, setPlan] = useState(null)
   const [generating, setGenerating] = useState(false)
@@ -50,6 +75,10 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [optIns, setOptIns] = useState({ seedCycling: false })
   const [pantry, setPantry] = useState('')
+  // Calendar range picker — user picks start + end. Default: today → today+6
+  // (a 7-day window). Hard cap at 14 days.
+  const [startDate, setStartDate] = useState(todayLocalISO())
+  const [endDate, setEndDate] = useState(addDaysISO(todayLocalISO(), 6))
 
   useEffect(() => {
     setProfile(getProfile())
@@ -66,18 +95,19 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     return () => clearInterval(id)
   }, [generating])
 
-  function getNextMonday() {
-    const today = new Date()
-    const day = today.getDay() // 0 = Sun, 1 = Mon
-    const daysUntilMonday = day === 0 ? 1 : (day === 1 ? 0 : 8 - day)
-    const monday = new Date(today)
-    monday.setDate(monday.getDate() + daysUntilMonday)
-    return monday.toISOString().slice(0, 10)
-  }
-
   async function generatePlan() {
     if (!profile?.lastPeriodStart || !profile?.cycleLength) {
       setError('I need your cycle date + length to plan the week. Open the menu and add Cycle details.')
+      return
+    }
+    // Validate the picked range (start ≤ end, ≤ 14 days)
+    const numDays = diffDaysISO(startDate, endDate) + 1
+    if (numDays < 1) {
+      setError('End date must be on or after start date.')
+      return
+    }
+    if (numDays > 14) {
+      setError('Pick a window of 14 days or fewer.')
       return
     }
     setGenerating(true)
@@ -86,8 +116,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
     const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
     const cycleLengthDays = cycleLengthMap[profile.cycleLength] || 28
-    const weekStart = getNextMonday()
-    const weekDays = computeWeekPhases(weekStart, profile.lastPeriodStart, cycleLengthDays)
+    const weekDays = computeWeekPhases(startDate, profile.lastPeriodStart, cycleLengthDays, numDays)
 
     try {
       const res = await fetch('/api/generate-week', {
@@ -126,23 +155,59 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
         <TopTabs active="weekly" onSelect={onNavigate} />
 
         <h2 className="font-display text-2xl text-ruhi-deep mb-2 mt-4 screen-enter">Plan your week</h2>
-        <p className="text-ruhi-earth mb-8 text-center max-w-xs leading-relaxed screen-enter">
-          One Sunday plan. Cycle-aware meals for all 7 days. Shopping list ready to order.
+        <p className="text-ruhi-earth mb-6 text-center max-w-xs leading-relaxed screen-enter">
+          Cycle-aware meals for the days you pick. Shopping list ready to order.
         </p>
 
-        {/* Pantry input */}
+        {/* Date range picker */}
         <div className="w-full mb-6 screen-enter">
-          <label htmlFor="pantry-input" className="block text-base text-ruhi-earth mb-2">
+          <p className="block text-base text-ruhi-earth mb-2">When are you planning for?</p>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label htmlFor="start-date" className="block text-xs text-ruhi-earth mb-1">From</label>
+              <input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
+                           focus:border-ruhi-deep text-sm text-ruhi-deep"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="end-date" className="block text-xs text-ruhi-earth mb-1">To</label>
+              <input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
+                max={addDaysISO(startDate, 13)}
+                className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
+                           focus:border-ruhi-deep text-sm text-ruhi-deep"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-ruhi-earth mt-1">
+            {(() => {
+              const n = diffDaysISO(startDate, endDate) + 1
+              if (n < 1) return 'End date must be on or after start.'
+              if (n > 14) return 'Maximum 14 days at a time.'
+              return `${n} day${n === 1 ? '' : 's'} of meals`
+            })()}
+          </p>
+        </div>
+
+        {/* Pantry input — voice + text */}
+        <div className="w-full mb-6 screen-enter">
+          <label className="block text-base text-ruhi-earth mb-2">
             What's already in your kitchen?
           </label>
-          <textarea
-            id="pantry-input"
-            value={pantry}
-            onChange={(e) => setPantry(e.target.value)}
+          <VoiceInput
+            label="What's in your kitchen"
             placeholder="e.g. salmon, lentils, spinach, eggs, sweet potato..."
-            rows={3}
-            className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
-                       focus:border-ruhi-deep text-sm text-ruhi-deep"
+            initialValue={pantry}
+            onResult={(text) => setPantry(text)}
           />
           <p className="text-xs text-ruhi-earth mt-1">
             Items you already have are subtracted from the shopping list.
@@ -196,9 +261,9 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
       {/* Header — week range + phase progression */}
       <div className="w-full mb-4">
-        <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Week of</p>
+        <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Planning</p>
         <h2 className="font-display text-xl text-ruhi-deep mb-3">
-          {formatDate(plan.days[0].date)} – {formatDate(plan.days[6].date)}
+          {formatDate(plan.days[0].date)} – {formatDate(plan.days[plan.days.length - 1].date)}
         </h2>
         <PhaseProgression days={plan.days} />
       </div>
@@ -394,44 +459,118 @@ function DayMeal({ label, item }) {
 }
 
 function ShoppingTab({ shoppingList }) {
-  const grouped = {}
-  shoppingList.forEach((it) => {
-    const cat = it.category || 'other'
-    if (!grouped[cat]) grouped[cat] = []
-    grouped[cat].push(it)
-  })
+  // Items default to checked if not already in pantry, unchecked if user has them.
+  // Stable index-based keys since shopping items don't have unique IDs.
+  const initialChecked = shoppingList.map((it) => !it.inPantry)
+  const [checked, setChecked] = useState(initialChecked)
+  // 1x default, 2x or 3x to scale shopping quantities for multiple servings/people
+  const [multiplier, setMultiplier] = useState(1)
 
-  const categoryOrder = ['produce', 'protein', 'dairy', 'pantry', 'frozen', 'other']
+  // Re-sync checked state if the shopping list itself changes (e.g. regenerate)
+  useEffect(() => {
+    setChecked(shoppingList.map((it) => !it.inPantry))
+  }, [shoppingList])
+
+  function toggleItem(idx) {
+    setChecked((prev) => {
+      const next = [...prev]
+      next[idx] = !next[idx]
+      return next
+    })
+  }
+
+  function selectAll() {
+    setChecked(shoppingList.map(() => true))
+  }
+  function deselectAll() {
+    setChecked(shoppingList.map(() => false))
+  }
 
   function openInstacart() {
-    // Tier 1 stub — opens Instacart with a generic search.
-    // Real Connect API integration replaces this once UNSPLASH_ACCESS_KEY arrives.
-    const items = shoppingList.filter((it) => !it.inPantry).map((it) => it.name).join(' ')
+    // Only items the user has checked get sent to Instacart.
+    // Quantities multiplied by current multiplier setting.
+    const items = shoppingList
+      .filter((_, idx) => checked[idx])
+      .map((it) => `${scaleQuantity(it.quantity, multiplier)} ${it.name}`.trim())
+      .join(' ')
     const url = `https://www.instacart.com/store/s?k=${encodeURIComponent(items)}`
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
-  const toBuyCount = shoppingList.filter((it) => !it.inPantry).length
-  const haveCount = shoppingList.filter((it) => it.inPantry).length
+  const grouped = {}
+  shoppingList.forEach((it, idx) => {
+    const cat = it.category || 'other'
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push({ item: it, idx })
+  })
+  const categoryOrder = ['produce', 'protein', 'dairy', 'pantry', 'frozen', 'other']
+
+  const checkedCount = checked.filter(Boolean).length
 
   return (
     <div className="w-full space-y-4 screen-enter">
-      <div className="flex items-center justify-between text-sm text-ruhi-earth px-1">
-        <span><strong className="text-ruhi-deep">{toBuyCount}</strong> to buy</span>
-        {haveCount > 0 && <span>{haveCount} already have</span>}
+      {/* Header — counts + select all/none */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="text-ruhi-earth">
+          <strong className="text-ruhi-deep">{checkedCount}</strong> of {shoppingList.length} selected
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={selectAll}
+            className="text-ruhi-earth hover:text-ruhi-deep underline underline-offset-2"
+          >Select all</button>
+          <span className="text-ruhi-earth/40">·</span>
+          <button
+            onClick={deselectAll}
+            className="text-ruhi-earth hover:text-ruhi-deep underline underline-offset-2"
+          >Deselect all</button>
+        </div>
       </div>
 
+      {/* 1x / 2x / 3x serving multiplier — segmented pill, theme-aware colors */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-ruhi-earth">Servings</span>
+        <div role="radiogroup" aria-label="Servings multiplier" className="inline-flex rounded-full p-0.5 bg-white/50 border border-ruhi-earth/20">
+          {[1, 2, 3].map((n) => (
+            <button
+              key={n}
+              role="radio"
+              aria-checked={multiplier === n}
+              onClick={() => setMultiplier(n)}
+              className={`px-4 py-1.5 rounded-full text-sm transition-all duration-150
+                ${multiplier === n
+                  ? 'bg-ruhi-deep text-ruhi-cream shadow-sm'
+                  : 'text-ruhi-earth hover:text-ruhi-deep'}`}
+            >
+              {n}x
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Categorized list with checkboxes */}
       {categoryOrder.map((cat) => (
         grouped[cat]?.length > 0 && (
           <section key={cat}>
             <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">{cat}</h3>
-            <div className="bg-white/70 rounded-2xl p-3 border border-white/60 shadow-sm space-y-1.5">
-              {grouped[cat].map((it, i) => (
-                <div key={i} className={`flex items-center justify-between text-sm
-                  ${it.inPantry ? 'text-ruhi-earth/50 line-through' : 'text-ruhi-deep'}`}>
-                  <span>{it.name}</span>
-                  <span className="text-xs">{it.quantity}</span>
-                </div>
+            <div className="bg-white/70 rounded-2xl p-2 border border-white/60 shadow-sm">
+              {grouped[cat].map(({ item, idx }) => (
+                <label
+                  key={idx}
+                  className={`flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer
+                    hover:bg-white/60 transition-colors
+                    ${checked[idx] ? 'text-ruhi-deep' : 'text-ruhi-earth/50'}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked[idx]}
+                    onChange={() => toggleItem(idx)}
+                    className="w-4 h-4 accent-ruhi-deep flex-shrink-0"
+                    aria-label={`${item.name}, ${scaleQuantity(item.quantity, multiplier)}`}
+                  />
+                  <span className="flex-1 text-sm">{item.name}</span>
+                  <span className="text-xs">{scaleQuantity(item.quantity, multiplier)}</span>
+                </label>
               ))}
             </div>
           </section>
@@ -440,20 +579,79 @@ function ShoppingTab({ shoppingList }) {
 
       <button
         onClick={openInstacart}
-        className="w-full py-3 rounded-full bg-ruhi-deep text-ruhi-cream text-sm
-                   hover:bg-ruhi-earth transition-all shadow-md hover:shadow-lg
-                   flex items-center justify-center gap-2"
+        disabled={checkedCount === 0}
+        className={`w-full py-3 rounded-full text-sm transition-all flex items-center justify-center gap-2
+          ${checkedCount === 0
+            ? 'bg-ruhi-earth/30 text-ruhi-earth cursor-not-allowed'
+            : 'bg-ruhi-deep text-ruhi-cream hover:bg-ruhi-earth shadow-md hover:shadow-lg'}`}
       >
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
         </svg>
-        Send to Instacart
+        Send {checkedCount} item{checkedCount === 1 ? '' : 's'} to Instacart
       </button>
       <p className="text-[10px] text-ruhi-earth text-center -mt-1">
         Stub for now — real Instacart Connect integration coming once your API key is approved.
       </p>
     </div>
   )
+}
+
+// Multiply a free-text quantity by N. Handles common formats:
+//   "500g" → "1500g" (or "1.5kg" if it crosses a threshold)
+//   "4 medium" → "8 medium" / "12 medium"
+//   "1 cup" → "2 cups" / "3 cups"
+//   "1 small jar" → "2 small jars" / "3 small jars"
+//   "Pinch" → "Pinch" (no quantity, leave as-is)
+function scaleQuantity(qty, n) {
+  if (!qty || n === 1) return qty
+  const s = String(qty).trim()
+  // Find the leading number (with optional fraction or decimal)
+  const m = s.match(/^([\d./]+|[½⅓⅔¼¾⅛⅜⅝⅞])\s*(.*)$/)
+  if (!m) return qty
+  const value = parseQty(m[1])
+  if (value == null || value === 0) return qty
+  const rest = m[2].trim()
+  let scaled = value * n
+
+  // Smart unit threshold: g → kg when ≥ 1000, ml → L when ≥ 1000
+  let unit = rest
+  if (/^g\b/i.test(rest) && scaled >= 1000) {
+    scaled = scaled / 1000
+    unit = rest.replace(/^g\b/i, 'kg')
+  } else if (/^ml\b/i.test(rest) && scaled >= 1000) {
+    scaled = scaled / 1000
+    unit = rest.replace(/^ml\b/i, 'L')
+  }
+
+  // Format the scaled number — strip .0 endings, max 1 decimal
+  const formatted = Math.round(scaled * 10) / 10
+  const numStr = Number.isInteger(formatted) ? String(formatted) : String(formatted)
+
+  // Pluralize trailing noun if scaled > 1 and unit ends in a singular word
+  const pluralized = pluralizeIfNeeded(unit, scaled)
+  return pluralized ? `${numStr} ${pluralized}` : numStr
+}
+
+function parseQty(str) {
+  const unicodeFractions = { '½': 0.5, '⅓': 1/3, '⅔': 2/3, '¼': 0.25, '¾': 0.75, '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875 }
+  if (unicodeFractions[str]) return unicodeFractions[str]
+  const fr = str.match(/^(\d+)\/(\d+)$/)
+  if (fr) return parseInt(fr[1]) / parseInt(fr[2])
+  const num = parseFloat(str)
+  return isNaN(num) ? null : num
+}
+
+function pluralizeIfNeeded(unit, count) {
+  if (!unit || count <= 1) return unit
+  // Words that already end in 's' or are uncountable — leave alone
+  if (/(?:s|ss)$/i.test(unit)) return unit
+  // Skip pluralizing weight/volume units (kg, g, ml, L, oz, lb, cup, tsp, tbsp)
+  if (/^(g|kg|ml|l|oz|lb|tsp|tbsp)\b/i.test(unit)) return unit
+  // Common nouns to pluralize: tomato → tomatoes, jar → jars, knob → knobs
+  if (/o$/i.test(unit)) return unit + 'es'
+  if (/y$/i.test(unit)) return unit.slice(0, -1) + 'ies'
+  return unit + 's'
 }
 
 function formatDate(iso) {
