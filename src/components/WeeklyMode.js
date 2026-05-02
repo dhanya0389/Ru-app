@@ -38,6 +38,14 @@ const TIPS_DURING_GENERATION = [
   'Finalizing the week.',
 ]
 
+const ENERGY_LABELS = {
+  1: 'running on empty',
+  2: 'taking it slow',
+  3: 'steady',
+  4: 'feeling good',
+  5: 'fabulous',
+}
+
 /**
  * Weekly mode — Sunday-style "plan the whole week" flow.
  * States: noPlan → generating → hasPlan (with Menu | Week | Shopping tabs)
@@ -79,6 +87,12 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   // (a 7-day window). Hard cap at 14 days.
   const [startDate, setStartDate] = useState(todayLocalISO())
   const [endDate, setEndDate] = useState(addDaysISO(todayLocalISO(), 6))
+  // Energy at planning time (1-5) — informs dish complexity & meal heaviness.
+  // Same scale as Daily Check-in. Default 3 (steady).
+  const [energy, setEnergy] = useState(3)
+  // When user taps a menu tile, we render an expanded recipe view in place
+  // of the tab content (same pattern as CardView's full-screen expand).
+  const [expandedRecipe, setExpandedRecipe] = useState(null)
 
   useEffect(() => {
     setProfile(getProfile())
@@ -126,6 +140,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
           profile,
           weekDays,
           pantry,
+          energy,
           supplements: profile.supplements || [],
           seedCycling: optIns.seedCycling,
         }),
@@ -214,6 +229,31 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
           </p>
         </div>
 
+        {/* Energy at planning time — informs dish complexity for the week */}
+        <div className="w-full mb-6 screen-enter">
+          <label htmlFor="weekly-energy" className="block text-base text-ruhi-earth mb-2">
+            Energy this week:{' '}
+            <span className="font-semibold text-ruhi-deep">{ENERGY_LABELS[energy]}</span>
+          </label>
+          <input
+            id="weekly-energy"
+            type="range"
+            min="1"
+            max="5"
+            value={energy}
+            onChange={(e) => setEnergy(Number(e.target.value))}
+            aria-valuetext={ENERGY_LABELS[energy]}
+            className="w-full accent-ruhi-deep"
+          />
+          <div aria-hidden="true" className="flex justify-between text-xs text-ruhi-earth mt-1">
+            <span>Low energy week</span>
+            <span>High energy week</span>
+          </div>
+          <p className="text-xs text-ruhi-earth mt-1">
+            Lower energy = simpler recipes (assembly, leftovers). Higher = room for ambition.
+          </p>
+        </div>
+
         {error && (
           <p role="alert" className="text-sm text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-2 mb-4 max-w-xs text-center">
             {error}
@@ -248,6 +288,16 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
             {TIPS_DURING_GENERATION[tipIndex]}
           </p>
         </div>
+      </div>
+    )
+  }
+
+  // ── Expanded recipe state (modal full-screen view) ────────
+  if (expandedRecipe) {
+    return (
+      <div className="ruhi-bg min-h-screen flex flex-col items-center px-6 py-6 max-w-md mx-auto relative z-10">
+        <NavMenu open={menuOpen} setOpen={setMenuOpen} onNavigate={onNavigate} />
+        <RecipeView item={expandedRecipe} onBack={() => setExpandedRecipe(null)} />
       </div>
     )
   }
@@ -294,8 +344,8 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
       </div>
 
       {/* Tab content */}
-      {tab === 'menu' && <MenuTab menu={plan.menu} />}
-      {tab === 'week' && <WeekTab plan={plan} />}
+      {tab === 'menu' && <MenuTab menu={plan.menu} onOpenRecipe={setExpandedRecipe} />}
+      {tab === 'week' && <WeekTab plan={plan} onOpenRecipe={setExpandedRecipe} />}
       {tab === 'shopping' && <ShoppingTab shoppingList={plan.shoppingList || []} />}
 
       {/* Bottom actions */}
@@ -347,37 +397,112 @@ function TabButton({ active, onClick, children }) {
   )
 }
 
-function MenuTab({ menu }) {
+// Per-meal kcal + protein target ranges (from her Notion meal-prep template).
+// Shown next to each section header so users see what each meal type "should"
+// hit. Defaults work for the general product; future tier with body data
+// will scale these per-user.
+const MEAL_TARGETS = {
+  Breakfasts: '350–420 kcal · 25–30g protein',
+  Lunches: '420–500 kcal · 35–40g protein',
+  Snacks: '150–220 kcal · 10–15g protein · non-negotiable in luteal/menstrual',
+  Dinners: '350–430 kcal · 30–35g protein · always warm',
+}
+
+function MenuTab({ menu, onOpenRecipe }) {
   return (
     <div className="w-full space-y-5 screen-enter">
-      <MenuSection title="Breakfasts" items={menu.breakfasts} />
-      <MenuSection title="Lunches" items={menu.lunches} />
-      <MenuSection title="Snacks" items={menu.snacks} />
-      <MenuSection title="Dinners" items={menu.dinners} />
+      <MenuSection title="Breakfasts" items={menu.breakfasts} onOpenRecipe={onOpenRecipe} />
+      <MenuSection title="Lunches" items={menu.lunches} onOpenRecipe={onOpenRecipe} />
+      <MenuSection title="Snacks" items={menu.snacks} onOpenRecipe={onOpenRecipe} />
+      <MenuSection title="Dinners" items={menu.dinners} onOpenRecipe={onOpenRecipe} />
       <DrinksSection drinks={menu.drinks} />
     </div>
   )
 }
 
-function MenuSection({ title, items }) {
+function MenuSection({ title, items, onOpenRecipe }) {
+  const target = MEAL_TARGETS[title]
   return (
     <section>
-      <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">{title}</h3>
+      <div className="mb-2 px-1">
+        <h3 className="text-xs uppercase tracking-widest text-ruhi-earth">{title}</h3>
+        {target && (
+          <p className="text-[10px] text-ruhi-earth/70 mt-0.5">Target: {target}</p>
+        )}
+      </div>
       <div className="space-y-2">
         {items?.map((item) => (
-          <div key={item.id} className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm">
+          <button
+            key={item.id}
+            onClick={() => onOpenRecipe?.(item)}
+            className="w-full text-left bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm
+                       hover:bg-white/90 hover:scale-[1.01] transition-all duration-200
+                       cursor-pointer focus:outline-none focus-visible:border-ruhi-deep"
+            aria-label={`Open recipe for ${item.title}`}
+          >
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <h4 className="font-display text-base text-ruhi-deep leading-tight">{item.title}</h4>
               <span className="text-xs text-ruhi-earth flex-shrink-0">{item.cookTime}</span>
             </div>
-            <p className="text-xs text-ruhi-earth mb-1">{item.macros}</p>
+            <p className="text-xs text-ruhi-earth mb-1">{item.macros}{item.calories ? ` · ${item.calories}` : ''}</p>
             <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
               {item.phaseFit?.join(' · ')}
             </p>
-          </div>
+          </button>
         ))}
       </div>
     </section>
+  )
+}
+
+function RecipeView({ item, onBack }) {
+  return (
+    <div className="w-full screen-enter">
+      <button
+        onClick={onBack}
+        className="text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors mb-4 self-start"
+      >
+        <span aria-hidden="true">←</span> Back to menu
+      </button>
+
+      <h2 className="font-display text-2xl text-ruhi-deep mb-2">{item.title}</h2>
+      <div className="flex flex-wrap gap-3 text-sm text-ruhi-earth mb-2">
+        <span>{item.cookTime}</span>
+        {item.calories && <><span aria-hidden="true">·</span><span>{item.calories}</span></>}
+      </div>
+      <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
+      {item.phaseFit?.length > 0 && (
+        <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-6">
+          Best for: {item.phaseFit.join(' · ')}
+        </p>
+      )}
+
+      <div className="bg-white/70 rounded-2xl p-5 mb-4 border border-white/60 shadow-sm">
+        <h4 className="text-sm font-bold text-ruhi-deep mb-3">Ingredients</h4>
+        <ul className="text-sm text-ruhi-earth space-y-1.5">
+          {item.ingredients?.map((ing, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className="text-ruhi-sage mt-0.5">·</span>
+              <span>{ing}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="bg-white/70 rounded-2xl p-5 mb-6 border border-white/60 shadow-sm">
+        <h4 className="text-sm font-bold text-ruhi-deep mb-3">Steps</h4>
+        <ol className="text-sm text-ruhi-earth space-y-3">
+          {item.steps?.map((step, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-ruhi-warm flex items-center justify-center text-xs text-ruhi-deep font-medium">
+                {i + 1}
+              </span>
+              <span className="pt-0.5">{step}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
   )
 }
 
@@ -410,7 +535,7 @@ function DrinksSection({ drinks }) {
   )
 }
 
-function WeekTab({ plan }) {
+function WeekTab({ plan, onOpenRecipe }) {
   // Build a lookup from id → menu item for fast assignment rendering
   const itemById = {}
   ;['breakfasts', 'lunches', 'snacks', 'dinners'].forEach((cat) => {
@@ -421,6 +546,13 @@ function WeekTab({ plan }) {
     <div className="w-full space-y-3 screen-enter">
       {plan.days.map((day) => {
         const assignment = plan.assignments?.find((a) => a.date === day.date)
+        const meals = assignment ? [
+          { label: 'B', item: itemById[assignment.breakfastId] },
+          { label: 'L', item: itemById[assignment.lunchId] },
+          assignment.snackId && { label: 'S', item: itemById[assignment.snackId] },
+          { label: 'D', item: itemById[assignment.dinnerId] },
+        ].filter(Boolean) : []
+        const totals = sumDailyMacros(meals.map(m => m.item))
         return (
           <div key={day.date} className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm">
             <div className="flex items-center justify-between mb-3">
@@ -434,11 +566,18 @@ function WeekTab({ plan }) {
               </div>
             </div>
             {assignment && (
-              <div className="space-y-1.5 text-sm">
-                <DayMeal label="B" item={itemById[assignment.breakfastId]} />
-                <DayMeal label="L" item={itemById[assignment.lunchId]} />
-                {assignment.snackId && <DayMeal label="S" item={itemById[assignment.snackId]} />}
-                <DayMeal label="D" item={itemById[assignment.dinnerId]} />
+              <div className="space-y-1 text-sm">
+                {meals.map(({ label, item }) => (
+                  <DayMeal key={label} label={label} item={item} onOpenRecipe={onOpenRecipe} />
+                ))}
+              </div>
+            )}
+            {totals && (
+              <div className="mt-3 pt-2 border-t border-ruhi-earth/10 flex justify-between text-[11px] text-ruhi-earth">
+                <span>Daily total</span>
+                <span>
+                  ~{totals.calories} cal · <strong className="text-ruhi-deep">{totals.protein}g protein</strong>{totals.carbs > 0 ? ` · ${totals.carbs}g carbs` : ''}
+                </span>
               </div>
             )}
           </div>
@@ -448,14 +587,41 @@ function WeekTab({ plan }) {
   )
 }
 
-function DayMeal({ label, item }) {
+function DayMeal({ label, item, onOpenRecipe }) {
   if (!item) return null
   return (
-    <div className="flex items-baseline gap-2">
+    <button
+      onClick={() => onOpenRecipe?.(item)}
+      className="flex items-baseline gap-2 w-full text-left rounded px-1 py-0.5
+                 hover:bg-white/60 transition-colors"
+      aria-label={`Open recipe for ${item.title}`}
+    >
       <span className="w-5 flex-shrink-0 text-[10px] uppercase tracking-wide text-ruhi-earth">{label}</span>
       <span className="text-ruhi-deep flex-1">{item.title}</span>
-    </div>
+    </button>
   )
+}
+
+// Parse free-text macros / calories strings from a menu item and sum them
+// across the day's assigned meals. Returns null if no items contribute.
+function sumDailyMacros(items) {
+  let p = 0, c = 0, f = 0, cal = 0, found = false
+  for (const it of items) {
+    if (!it) continue
+    const macros = it.macros || ''
+    const calStr = it.calories || ''
+    const pm = macros.match(/(\d+)\s*g\s*protein/i)
+    const cm = macros.match(/(\d+)\s*g\s*carbs/i)
+    const fm = macros.match(/(\d+)\s*g\s*fat/i)
+    const calm = calStr.match(/~?\s*(\d+)/)
+    if (pm || cm || fm || calm) found = true
+    if (pm) p += parseInt(pm[1], 10)
+    if (cm) c += parseInt(cm[1], 10)
+    if (fm) f += parseInt(fm[1], 10)
+    if (calm) cal += parseInt(calm[1], 10)
+  }
+  if (!found) return null
+  return { protein: p, carbs: c, fat: f, calories: cal }
 }
 
 function ShoppingTab({ shoppingList }) {

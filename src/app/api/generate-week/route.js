@@ -13,12 +13,21 @@ export async function POST(request) {
 
   const {
     profile,
-    weekDays,         // DayPhase[] — 7 entries with phase + cycleDay + mode for each
+    weekDays,         // DayPhase[] — 1-14 entries with phase + cycleDay + mode for each
     pantry,           // string — free-text list of items already on hand
+    energy,           // 1-5 — user's energy at planning time, biases dish complexity
     supplements,      // string[] — user-reported supplements (Tier 1 tracking only)
     seedCycling,      // boolean — opt-in
     bodyData,         // optional: { calorieTarget?, proteinFloor?, proteinTarget?, rmr? }
   } = await request.json()
+
+  const energyHints = {
+    1: 'User reports VERY LOW energy this week — lean heavily on assembly meals (no real cooking), pre-cooked proteins, batch-prepped components, microwave-friendly dishes. Minimize active stove time. Repeat the same easy dish multiple days.',
+    2: 'User reports LOW energy this week — favor simple recipes (under 20 min active cook time), assembly-style bowls, sheet-pan meals. Allow 1-2 dishes that repeat across multiple days for meal-prep efficiency.',
+    3: 'User reports STEADY energy this week — balanced mix of simple and slightly more involved recipes. Standard cycle-aware meal planning.',
+    4: 'User reports GOOD energy this week — room for one or two more ambitious recipes (more ingredients, longer cook time). Variety welcome.',
+    5: 'User reports HIGH energy this week — open to ambitious cooking, new techniques, complex flavor builds. Use this week to try a recipe that takes more effort.',
+  }
 
   // System prompt encodes the science INTERNALLY but never names practitioners
   // in card-content. The model knows about Pelz's framing (ketobiotic /
@@ -102,16 +111,19 @@ ${weekDays.map(d => `- ${d.dayLabel} ${d.date}: ${d.phase} day ${d.cycleDay} (${
 PANTRY (already on hand):
 ${pantry || 'general staples'}
 
+ENERGY THIS WEEK:
+${energyHints[energy] || energyHints[3]}
+
 ${bodyData ? `BODY DATA (use these targets):
 - Calorie target: ${bodyData.calorieTarget || 'general phase-aware'}
 - Protein floor: ${bodyData.proteinFloor || 25}g minimum
 - Protein target: ${bodyData.proteinTarget || 'hit floor'}` : ''}
 
 Use the return_weekly_menu tool to deliver:
-1. A menu of dishes (3 breakfasts + 4 lunches + 3 snacks + 4 dinners + 6–9 drinks across morning/afternoon/evening). Each dish phase-tagged with which days it suits.
-2. An auto-assignment of dishes to the 7 days (cycle-aware: dish must match that day's phase + mode). Snacks are required (non-null) for menstrual + luteal days, optional for follicular + ovulatory.
-3. An aggregated shopping list with quantities, categorized (produce/protein/pantry/dairy/frozen/other), with inPantry=true for items already in the user's pantry.
-4. Phase-transition callouts (1–3 short strings) for any day-to-day phase shifts in the week.
+1. A menu of dishes (3 breakfasts + 4 lunches + 3 snacks + 4 dinners + 6–9 drinks across morning/afternoon/evening). Each dish phase-tagged with which days it suits. Users will rotate through these across the planning window — keep variety bounded so meal-prep is realistic.
+2. An auto-assignment of dishes to ALL ${weekDays.length} days in this planning window (cycle-aware: dish must match that day's phase + mode). Rotate dishes through the days as needed (e.g. same dinner appears on multiple days). Snacks are required (non-null) for menstrual + luteal days, optional for follicular + ovulatory.
+3. An aggregated shopping list with quantities, categorized (produce/protein/pantry/dairy/frozen/other), with inPantry=true for items already in the user's pantry. Quantities should reflect the total used across the assignments (e.g. a dinner that appears 3 days needs 3× the protein).
+4. Phase-transition callouts (1–3 short strings) for any day-to-day phase shifts in the window.
 5. A seed-cycling note if applicable.`
 
   // Schema enforced via tool_use — guarantees valid structured output.
@@ -155,7 +167,9 @@ Use the return_weekly_menu tool to deliver:
           },
           required: ['date', 'breakfastId', 'lunchId', 'dinnerId'],
         },
-        minItems: 7, maxItems: 7,
+        // Match the user's picked window — was hardcoded 7 which broke 8-14 day plans
+        minItems: weekDays.length,
+        maxItems: weekDays.length,
       },
       shoppingList: {
         type: 'array',
