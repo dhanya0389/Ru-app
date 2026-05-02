@@ -258,7 +258,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
 
       {isFallback && (
         <p role="status" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-3 self-center max-w-xs text-center">
-          Showing sample cards — personalized meals need an ANTHROPIC_API_KEY in <code>.env.local</code>.
+          Showing sample meals — your personal version blooms in a moment.
         </p>
       )}
 

@@ -33,7 +33,7 @@ export default function TransitionScreen({ onContinue, menuOpen, setMenuOpen, on
         className="text-ruhi-earth mb-12 max-w-xs leading-relaxed screen-enter"
         style={{ animationDelay: '0.2s' }}
       >
-        Let's plan your day.
+        Ready when you are.
       </p>
 
       <button
