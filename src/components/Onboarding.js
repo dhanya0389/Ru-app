@@ -271,8 +271,8 @@ export default function Onboarding({
         />
         <button
           onClick={() => { update('avoidances', ''); next(); }}
-          className="block mx-auto mt-6 px-7 py-3 rounded-full border-2 border-ruhi-sage
-                     text-base text-ruhi-earth hover:bg-ruhi-warm hover:border-ruhi-deep
+          className="block mx-auto mt-6 px-7 py-3 rounded-full border-2 border-ruhi-earth/40
+                     text-base text-ruhi-earth hover:bg-ruhi-warm/60 hover:border-ruhi-deep
                      transition-colors"
         >
           Skip — no restrictions
@@ -349,25 +349,48 @@ export default function Onboarding({
     ),
 
     // 9: Cycle details (only shown if tracksCycle === true)
-    () => (
-      <Screen title="A little more about your cycle" onNext={next} onBack={back} {...ctaLabels} canProceed={profile.lastPeriodStart !== ''}>
-        <label htmlFor="lastPeriodStart" className="block text-base text-ruhi-earth mb-1">When did your last period start?</label>
-        <input
-          id="lastPeriodStart"
-          type="date"
-          value={profile.lastPeriodStart}
-          onChange={e => update('lastPeriodStart', e.target.value)}
-          className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
-                     focus:border-ruhi-deep mb-6"
-        />
-        <p className="text-base text-ruhi-earth mb-2">Typical cycle length?</p>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {CYCLE_LENGTHS.map(cl => (
-            <OptionButton key={cl} label={cl} selected={profile.cycleLength === cl} onTap={() => update('cycleLength', cl)} small />
-          ))}
-        </div>
-      </Screen>
-    ),
+    () => {
+      // Local-time YYYY-MM-DD for today — used to clamp the date input so the
+      // user can't pick a future "last period start" (which would push their
+      // computed cycle day to nonsense). Built without toISOString to avoid
+      // the timezone shift bug we hit elsewhere.
+      const t = new Date()
+      const todayISO = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+      const isFuture = profile.lastPeriodStart && profile.lastPeriodStart > todayISO
+      return (
+        <Screen
+          title="A little more about your cycle"
+          onNext={next}
+          onBack={back}
+          {...ctaLabels}
+          canProceed={profile.lastPeriodStart !== '' && !isFuture}
+        >
+          <label htmlFor="lastPeriodStart" className="block text-base text-ruhi-earth mb-1">When did your last period start?</label>
+          <input
+            id="lastPeriodStart"
+            type="date"
+            value={profile.lastPeriodStart}
+            max={todayISO}
+            onChange={e => update('lastPeriodStart', e.target.value)}
+            aria-invalid={isFuture}
+            className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
+                       focus:border-ruhi-deep mb-2"
+          />
+          {isFuture && (
+            <p role="alert" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-1.5 mb-4">
+              That's in the future — pick a date on or before today.
+            </p>
+          )}
+          {!isFuture && <div className="mb-4" aria-hidden="true" />}
+          <p className="text-base text-ruhi-earth mb-2">Typical cycle length?</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {CYCLE_LENGTHS.map(cl => (
+              <OptionButton key={cl} label={cl} selected={profile.cycleLength === cl} onTap={() => update('cycleLength', cl)} small />
+            ))}
+          </div>
+        </Screen>
+      )
+    },
   ]
 
   return (
@@ -437,7 +460,7 @@ function OptionButton({ label, selected, onTap, small = false, highlight = false
             ? 'border-ruhi-deep bg-ruhi-deep text-ruhi-cream scale-[1.03] shadow-md'
             : highlight
               ? 'border-ruhi-sage text-ruhi-deep hover:border-ruhi-deep bg-ruhi-sage/20'
-              : 'border-ruhi-sage text-ruhi-earth hover:border-ruhi-deep hover:bg-ruhi-warm'
+              : 'border-ruhi-earth/40 text-ruhi-earth hover:border-ruhi-deep hover:bg-ruhi-warm/60'
         }`}
     >
       {label}

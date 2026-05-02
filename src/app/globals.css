@@ -2,22 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Default theme (Earth) — overridden by JS when user picks a palette */
+/* Default theme (Earth) — overridden by JS when user picks a palette.
+   Stored as space-separated RGB triplets so Tailwind's `<alpha-value>`
+   placeholder can interpolate opacity (e.g. `bg-ruhi-warm/60` works).
+   Always wrap in `rgb(var(--ruhi-X))` when used directly in CSS. */
 :root {
-  --ruhi-cream: #FFF8F0;
-  --ruhi-warm: #F5E6D3;
-  --ruhi-rose: #E8B4B8;
-  --ruhi-sage: #A8C5A0;
-  --ruhi-earth: #735D42; /* 4.5:1 on cream — see themes.js */
-  --ruhi-deep: #4A3728;
-  --ruhi-teal: #6B9CA8;       /* cool counterpoint, desaturated earthy teal */
-  --ruhi-terracotta: #C97B5C; /* warm rust, pairs with teal */
-  --ruhi-peach: #F4C9B0;      /* soft warm highlight */
+  --ruhi-cream: 255 248 240;
+  --ruhi-warm: 245 230 211;
+  --ruhi-rose: 232 180 184;
+  --ruhi-sage: 168 197 160;
+  --ruhi-earth: 115 93 66; /* 4.5:1 on cream — see themes.js */
+  --ruhi-deep: 74 55 40;
+  --ruhi-teal: 107 156 168;       /* cool counterpoint, desaturated earthy teal */
+  --ruhi-terracotta: 201 123 92;  /* warm rust, pairs with teal */
+  --ruhi-peach: 244 201 176;      /* soft warm highlight */
 }
 
 /* Visible focus for keyboard users across all interactive controls */
 :focus-visible {
-  outline: 2px solid var(--ruhi-deep);
+  outline: 2px solid rgb(var(--ruhi-deep));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -37,8 +40,8 @@ html, body {
 }
 
 body {
-  background-color: var(--ruhi-cream);
-  color: var(--ruhi-deep);
+  background-color: rgb(var(--ruhi-cream));
+  color: rgb(var(--ruhi-deep));
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 

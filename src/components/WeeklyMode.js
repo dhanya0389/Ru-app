@@ -194,7 +194,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-sage
+                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-earth/40
                              focus:border-ruhi-deep focus:outline-none text-sm text-ruhi-deep"
                 />
               </div>
@@ -207,7 +207,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
                   onChange={(e) => setEndDate(e.target.value)}
                   min={startDate}
                   max={addDaysISO(startDate, 13)}
-                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-sage
+                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-earth/40
                              focus:border-ruhi-deep focus:outline-none text-sm text-ruhi-deep"
                 />
               </div>
