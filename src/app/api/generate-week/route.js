@@ -1,5 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateMacros, formatMacros, formatCalories } from '@/lib/macros'
+import {
+  ALLOWED_SURNAMES,
+  buildWeeklyScienceFoundationBlock,
+} from '@/lib/practitioners'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -29,22 +33,16 @@ export async function POST(request) {
     5: 'User reports HIGH energy this week — open to ambitious cooking, new techniques, complex flavor builds. Use this week to try a recipe that takes more effort.',
   }
 
-  // System prompt encodes the science INTERNALLY but never names practitioners
-  // in card-content. The model knows about Pelz's framing (ketobiotic /
-  // hormone feasting) and uses it to drive macro distribution, but card titles,
-  // descriptions, and tips never say "Pelz" or any other name. If a user
-  // wants to know the science, the future Science page lists everyone.
-  const systemPrompt = `You are Ruhi, a personal health system. You generate weekly meal plans grounded in cycle-syncing science and modern metabolic research.
+  // Embed practitioner-attributed rules for every phase represented in the
+  // planning window plus cross-cutting rules. The model uses these as the
+  // spine of its meal selection and tags each dish with its source via the
+  // structured `practitioners` field — which is then surfaced in the UI.
+  const phasesInWeek = (weekDays || []).map((d) => d.phase)
+  const scienceFoundation = buildWeeklyScienceFoundationBlock(phasesInWeek)
 
-INTERNAL FRAMING (use to drive decisions, but NEVER name practitioners in user-facing content):
-- Cycle-day-based eating modes:
-  * Days 1–13 (menstrual + follicular): KETOBIOTIC mode — lower carb, higher fat + protein, supports insulin sensitivity and energy stabilization
-  * Days 14–28 (ovulatory + luteal): HORMONE FEASTING mode — higher complex carbs, more variety, supports progesterone production and luteal-phase metabolism
-- Phase-specific food priorities:
-  * Menstrual: iron-rich, warming, root vegetables, bone broth; gentle movement only
-  * Follicular: cruciferous vegetables, fermented foods, lighter proteins; creative energy
-  * Ovulatory: raw vegetables OK; lighter, more variety; high-intensity movement OK
-  * Luteal: progesterone-supporting foods (tropical fruits essential), complex carbs (NOT refined), magnesium-rich, comfort without junk
+  const systemPrompt = `You are Ruhi, a personal health system grounded in the work of 10 women's-health practitioners. The SCIENCE FOUNDATION block below lists the rules — derived from those practitioners — that ground every dish, drink, and snack you generate.
+
+${scienceFoundation}
 
 CARB RULES — universal (every mode):
 - "Complex carbs" means LOW-GI, fiber-rich whole grains and legumes ONLY:
@@ -56,7 +54,7 @@ CARB STRICTNESS — driven by user's profile.carbStrictness setting:
 - "gentle" mode (DEFAULT — building discipline, easing in):
   Include moderate complex carbs (~30–40g) at every meal in every phase across the week.
   Sourdough, oats, quinoa, farro, brown rice (small portion), steamed sweet potato welcome at any meal.
-  Inchauspé sequencing is still strict.
+  Glucose-flattening sequencing (vegetables → protein+fat → carbs) is still strict.
 - "standard" mode (full cycle-syncing, phase-aware):
   Days 1–13 (ketobiotic): lower carb (15–25g per meal), focus on protein + healthy fats.
   Days 14–28 (feasting): complex carbs welcome (30–45g per meal). Luteal especially benefits from complex carbs for progesterone support and serotonin.
@@ -69,9 +67,8 @@ PROTEIN FLOOR:
 - If bodyData.proteinFloor is provided, use that instead.
 
 VOICE / WRITING RULES:
-- NEVER mention specific practitioners or doctors by name in any card content (no "Dr. So-and-so", no "per Pelz", no "Vitti says", no name-drops).
-- If you reference scientific basis, say "research suggests", "evidence shows", or "the science of cycle-syncing" — never name a person.
-- Card content is direct, warm, embodied; first person where natural. Speak as Ruhi.
+- Recipe body copy ("title", "steps", drink "reason", phase-transition callouts) stays in Ruhi's voice — direct, warm, embodied; first person where natural. Do NOT name-drop practitioners inside body copy ("Vitti says…", "per Pelz…"). The practitioner attribution lives ONLY in the structured \`practitioners\` field on each dish; the UI surfaces it separately.
+- Avoid the phrases "scientifically proven" or "clinically proven" anywhere in copy.
 
 INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - For non-liquid ingredients, prefer GRAMS: "150g chicken breast", "60g spinach", "100g cooked lentils".
@@ -239,6 +236,25 @@ Use the return_weekly_menu tool to deliver:
       }
     }))
 
+    // Allowlist-enforce the practitioners field on every dish — runtime
+    // backstop for any drift (typos, "Dr. Vitti", first names, hallucinated
+    // names) that slipped past the schema's enum.
+    allDishes.forEach((dish) => {
+      dish.practitioners = sanitizePractitioners(dish.practitioners)
+    })
+
+    // Observability — distribution audit hook for weekly generation.
+    const citationCounts = {}
+    allDishes.forEach((dish) => {
+      dish.practitioners.forEach((surname) => {
+        citationCounts[surname] = (citationCounts[surname] || 0) + 1
+      })
+    })
+    console.log('[generate-week] practitioners cited', {
+      phasesInWeek: Array.from(new Set(phasesInWeek)),
+      counts: citationCounts,
+    })
+
     // Compose the full WeeklyPlan response with the day-phase metadata
     const result = {
       weekOf: weekDays[0]?.date,
@@ -275,7 +291,30 @@ function menuItemSchema() {
       },
       mode:        { type: 'string', enum: ['ketobiotic', 'feasting'] },
       imageQuery:  { type: 'string', description: '2-3 word stock-photo query' },
+      practitioners: {
+        type: 'array',
+        items: { type: 'string', enum: ALLOWED_SURNAMES },
+        minItems: 0,
+        maxItems: 3,
+        description: 'Surnames (0–3) of the practitioners whose rules ground this dish. Use ONLY surnames from the allowlist. Empty array is valid — better silent than fabricated.',
+      },
     },
-    required: ['id', 'title', 'cookTime', 'calories', 'macros', 'ingredients', 'steps', 'phaseFit', 'mode'],
+    required: ['id', 'title', 'cookTime', 'calories', 'macros', 'ingredients', 'steps', 'phaseFit', 'mode', 'practitioners'],
   }
+}
+
+// Drop names outside the canonical allowlist; cap at 3; preserve order.
+function sanitizePractitioners(list) {
+  if (!Array.isArray(list)) return []
+  const seen = new Set()
+  const cleaned = []
+  for (const name of list) {
+    if (typeof name !== 'string') continue
+    if (!ALLOWED_SURNAMES.includes(name)) continue
+    if (seen.has(name)) continue
+    seen.add(name)
+    cleaned.push(name)
+    if (cleaned.length === 3) break
+  }
+  return cleaned
 }
