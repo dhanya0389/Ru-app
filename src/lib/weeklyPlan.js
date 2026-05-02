@@ -107,15 +107,15 @@ export function saveOptIns(optIns) {
 }
 
 /**
- * Compute the phases for each day of the planning week.
- * Mirrors the logic in lib/phases.js but per-day across a 7-day window.
+ * Compute the phases for each day of a planning window.
  *
- * @param {string} weekStartISO  ISO date for Monday of the planning week
+ * @param {string} weekStartISO  ISO date for the FIRST day of the window
  * @param {string} lastPeriodStartISO
  * @param {number} cycleLengthDays  e.g. 28
+ * @param {number} numDays  how many days in the window (default 7, max 14)
  * @returns {DayPhase[]}
  */
-export function computeWeekPhases(weekStartISO, lastPeriodStartISO, cycleLengthDays = 28) {
+export function computeWeekPhases(weekStartISO, lastPeriodStartISO, cycleLengthDays = 28, numDays = 7) {
   const days = []
   // Parse both ISO strings as LOCAL midnight (not UTC) — see lib/phases.js
   // for the same fix in getCurrentPhase. Without this, timezone offsets
@@ -124,8 +124,11 @@ export function computeWeekPhases(weekStartISO, lastPeriodStartISO, cycleLengthD
   const start = new Date(sy, sm - 1, sd)
   const [py, pm, pd] = lastPeriodStartISO.split('-').map(Number)
   const lastPeriod = new Date(py, pm - 1, pd)
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  for (let i = 0; i < 7; i++) {
+  // Day labels are computed from the actual weekday of each date — no longer
+  // assumes the window starts on Monday.
+  const dayShortNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const safeNumDays = Math.max(1, Math.min(numDays, 14))
+  for (let i = 0; i < safeNumDays; i++) {
     const d = new Date(start)
     d.setDate(d.getDate() + i)
     const diffDays = Math.floor((d - lastPeriod) / (1000 * 60 * 60 * 24))
@@ -139,9 +142,11 @@ export function computeWeekPhases(weekStartISO, lastPeriodStartISO, cycleLengthD
 
     const mode = cycleDay <= 13 ? 'ketobiotic' : 'feasting'
 
+    // Build local-date YYYY-MM-DD (avoid toISOString() which would shift to UTC)
+    const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     days.push({
-      date: d.toISOString().slice(0, 10),
-      dayLabel: dayLabels[i],
+      date: localDate,
+      dayLabel: dayShortNames[d.getDay()],
       phase,
       cycleDay,
       mode,

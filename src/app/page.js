@@ -9,16 +9,11 @@ import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
 import WeeklyMode from '@/components/WeeklyMode'
 
-// Compute the ISO date (YYYY-MM-DD) of the Monday of THIS week (local time).
-// Used to decide whether a saved weekly plan is current or stale.
-function getCurrentMonday() {
+// ISO date (YYYY-MM-DD) for "today" in local time.
+// Used to decide whether a saved weekly plan is still current.
+function todayLocalISO() {
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const day = today.getDay() // 0 = Sun, 1 = Mon
-  const offsetToMonday = day === 0 ? -6 : 1 - day
-  const monday = new Date(today)
-  monday.setDate(monday.getDate() + offsetToMonday)
-  return monday.toISOString().slice(0, 10)
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 }
 
 export default function Home() {
@@ -34,11 +29,14 @@ export default function Home() {
       return
     }
     // Smart default: returning users land on Weekly mode if they have a
-    // current plan for THIS week (so they can see today's assigned meal,
-    // shopping list, etc.). Otherwise land on Daily Check-in. Top tabs let
-    // the user flip between the two on either screen.
+    // current plan that includes today (start ≤ today ≤ last day). Otherwise
+    // land on Daily Check-in. Top tabs let the user flip between the two on
+    // either screen. Replaces the old Monday-only check now that users pick
+    // arbitrary planning windows.
     const plan = getWeeklyPlan()
-    const hasCurrentPlan = plan && plan.weekOf === getCurrentMonday()
+    const today = todayLocalISO()
+    const lastDay = plan?.days?.[plan.days.length - 1]?.date
+    const hasCurrentPlan = plan && plan.weekOf <= today && lastDay >= today
     setScreen(hasCurrentPlan ? 'weekly' : 'checkin')
   }, [])
 
