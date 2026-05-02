@@ -88,18 +88,28 @@ export function setTheme(themeKey) {
   applyTheme(themeKey)
 }
 
+// Convert "#RRGGBB" → "R G B" (space-separated, no commas) so Tailwind's
+// `<alpha-value>` placeholder can interpolate opacity at the use site.
+function hexToTriplet(hex) {
+  const v = hex.replace('#', '')
+  const r = parseInt(v.slice(0, 2), 16)
+  const g = parseInt(v.slice(2, 4), 16)
+  const b = parseInt(v.slice(4, 6), 16)
+  return `${r} ${g} ${b}`
+}
+
 export function applyTheme(themeKey) {
   const theme = THEMES[themeKey] || THEMES.earth
   const root = document.documentElement
-  root.style.setProperty('--ruhi-cream', theme.cream)
-  root.style.setProperty('--ruhi-warm', theme.warm)
-  root.style.setProperty('--ruhi-rose', theme.rose)
-  root.style.setProperty('--ruhi-sage', theme.sage)
-  root.style.setProperty('--ruhi-earth', theme.earth)
-  root.style.setProperty('--ruhi-deep', theme.deep)
-  root.style.setProperty('--ruhi-teal', theme.teal)
-  root.style.setProperty('--ruhi-terracotta', theme.terracotta)
-  root.style.setProperty('--ruhi-peach', theme.peach)
+  root.style.setProperty('--ruhi-cream', hexToTriplet(theme.cream))
+  root.style.setProperty('--ruhi-warm', hexToTriplet(theme.warm))
+  root.style.setProperty('--ruhi-rose', hexToTriplet(theme.rose))
+  root.style.setProperty('--ruhi-sage', hexToTriplet(theme.sage))
+  root.style.setProperty('--ruhi-earth', hexToTriplet(theme.earth))
+  root.style.setProperty('--ruhi-deep', hexToTriplet(theme.deep))
+  root.style.setProperty('--ruhi-teal', hexToTriplet(theme.teal))
+  root.style.setProperty('--ruhi-terracotta', hexToTriplet(theme.terracotta))
+  root.style.setProperty('--ruhi-peach', hexToTriplet(theme.peach))
   // data-theme drives theme-aware botanical motif assets in CSS
   root.setAttribute('data-theme', THEMES[themeKey] ? themeKey : 'earth')
   document.body.style.backgroundColor = theme.cream
