@@ -1,6 +1,7 @@
 import './globals.css'
 import ThemeLoader from '@/components/ThemeLoader'
 import ThemePicker from '@/components/ThemePicker'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata = {
   title: 'Ruhi — Your Health System',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
         <ThemeLoader />
         {children}
         <ThemePicker />
+        <Analytics />
       </body>
     </html>
   )
