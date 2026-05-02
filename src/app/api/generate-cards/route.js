@@ -16,7 +16,7 @@ export async function POST(request) {
     )
   }
 
-  const { profile, phase, energy, cookingMood, kitchen, excludeMeal } = await request.json()
+  const { profile, phase, energy, cookingMood, kitchen, excludeMeal, pastEntries } = await request.json()
 
   const cookTimeMap = {
     quick: 'under 15 minutes',
@@ -55,6 +55,12 @@ VOICE / WRITING RULES:
 - Card body copy ("description", "tip", "steps") stays in Ruhi's voice — direct, warm, embodied; first person where natural. Do NOT name-drop practitioners inside body copy ("Vitti says…", "per Pelz…"). The practitioner attribution lives ONLY in the structured \`practitioners\` field on each card; the UI surfaces it separately.
 - Avoid the phrases "scientifically proven" or "clinically proven" anywhere in card copy.
 
+PAST JOURNAL ENTRIES (when provided):
+- The user may include 1–2 past journal entries from the same phase + day. Use them as silent context to make today's cards feel known — adjust tone, energy framing, or specific suggestions based on what she's said before.
+- NEVER quote the entries directly. NEVER say "last cycle you said…" or "you mentioned…". The retrieval is silent — it shapes the cards, it does not narrate itself.
+- If the past entry mentions a specific challenge (e.g. low energy, sleep trouble, a craving), let today's tip or movement subtly address it — without surfacing the entry.
+- If past entries don't fit naturally, ignore them. Forced relevance is worse than no relevance.
+
 INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - For non-liquid ingredients, prefer GRAMS: "150g chicken breast", "60g spinach", "100g cooked lentils".
 - For liquids, ml or cups are fine: "240ml broth" or "1 cup broth".
@@ -63,6 +69,8 @@ INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - Avoid vague volumes like "1 cup chickpeas" — write "150g cooked chickpeas" instead, since cup-to-gram conversions differ wildly by ingredient density.
 
 Generate personalized daily wellness cards based on the user's profile, cycle phase, energy level, and what's in their kitchen.`
+
+  const pastEntriesBlock = formatPastEntries(pastEntries)
 
   const userMessage = `Generate my daily cards.
 
@@ -82,6 +90,7 @@ TODAY:
 - Cooking mood: ${cookTimeMap[cookingMood] || '15–30 minutes'}
 - What's in my kitchen: ${kitchen || 'general pantry staples'}
 ${excludeMeal ? `- Do NOT suggest "${excludeMeal}" — give me something different.` : ''}
+${pastEntriesBlock}
 
 Use the return_cards tool to deliver your three cards.`
 
@@ -209,6 +218,27 @@ function practitionersFieldSchema(target) {
     maxItems: 3,
     description: `Surnames (0–3) of the practitioners whose rules ground ${target}. Use ONLY surnames from the allowlist above. Empty array is valid — better silent than fabricated.`,
   }
+}
+
+// Render past journal entries (if any) into a block of plain prose for the
+// user message. Returns '' when no usable entries — keeps the prompt clean
+// and avoids signaling "this section is empty" to the model.
+function formatPastEntries(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return ''
+  const lines = entries
+    .filter((e) => e && typeof e.note === 'string' && e.note.trim())
+    .slice(0, 2)
+    .map((e) => {
+      const dayLabel = typeof e.day === 'number' ? `Day ${e.day}` : 'past'
+      const energyLabel = typeof e.energy === 'number' ? `${e.energy}/5` : '?'
+      // Hard-cap each note at 240 chars so a runaway entry can't dominate the
+      // prompt budget. Voice-journal entries are typically 30s of speech, ~80
+      // words / ~450 chars — keep the most recent slice.
+      const note = e.note.trim().slice(0, 240)
+      return `- (${dayLabel}, energy ${energyLabel}): "${note}"`
+    })
+  if (lines.length === 0) return ''
+  return `\nPAST NOTES from same phase + day (silent context — do not quote, never say "you mentioned"):\n${lines.join('\n')}`
 }
 
 // Drop anything outside the canonical allowlist; cap at 3 names; preserve order.
