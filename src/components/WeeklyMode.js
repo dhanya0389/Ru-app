@@ -176,89 +176,96 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
         <TopTabs active="weekly" onSelect={onNavigate} />
 
-        <h2 className="font-display text-2xl text-ruhi-deep mb-2 mt-4 screen-enter">Plan your week</h2>
-        <p className="text-ruhi-earth mb-6 text-center max-w-xs leading-relaxed screen-enter">
-          Cycle-aware meals for the days you pick. Shopping list ready to order.
+        <h2 className="font-display text-2xl text-ruhi-deep mb-1 mt-4 screen-enter">Plan your week</h2>
+        <p className="text-sm text-ruhi-earth mb-5 text-center max-w-xs leading-relaxed screen-enter">
+          Cycle-aware meals for the days you pick.
         </p>
 
-        {/* Date range picker */}
-        <div className="w-full mb-6 screen-enter">
-          <p className="block text-base text-ruhi-earth mb-2">When are you planning for?</p>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label htmlFor="start-date" className="block text-xs text-ruhi-earth mb-1">From</label>
-              <input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
-                           focus:border-ruhi-deep text-sm text-ruhi-deep"
-              />
+        {/* Single grouped form card — date range, saved pantry, energy. */}
+        {/* Replaces three free-floating sections with one cohesive surface. */}
+        <div className="w-full bg-white/50 border border-white/60 rounded-2xl p-5 mb-5 screen-enter space-y-5">
+          {/* Date range */}
+          <div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label htmlFor="start-date" className="block text-xs text-ruhi-earth mb-1">From</label>
+                <input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-sage
+                             focus:border-ruhi-deep focus:outline-none text-sm text-ruhi-deep"
+                />
+              </div>
+              <div className="flex-1">
+                <label htmlFor="end-date" className="block text-xs text-ruhi-earth mb-1">To</label>
+                <input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  max={addDaysISO(startDate, 13)}
+                  className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-sage
+                             focus:border-ruhi-deep focus:outline-none text-sm text-ruhi-deep"
+                />
+              </div>
             </div>
-            <div className="flex-1">
-              <label htmlFor="end-date" className="block text-xs text-ruhi-earth mb-1">To</label>
-              <input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                max={addDaysISO(startDate, 13)}
-                className="w-full p-3 rounded-xl bg-white/60 border border-ruhi-earth/40
-                           focus:border-ruhi-deep text-sm text-ruhi-deep"
-              />
+            <p className="text-[11px] text-ruhi-earth/80 mt-1.5">
+              {(() => {
+                const n = diffDaysISO(startDate, endDate) + 1
+                if (n < 1) return 'End date must be on or after start.'
+                if (n > 14) return 'Maximum 14 days at a time.'
+                return `${n} day${n === 1 ? '' : 's'} of meals`
+              })()}
+            </p>
+          </div>
+
+          <div className="h-px bg-ruhi-warm" aria-hidden="true" />
+
+          {/* Saved pantry — surfaces the persisted inventory + lets the user
+              jump to the editor without leaving the planning flow. */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-ruhi-earth">Your pantry</label>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('pantry')}
+                className="text-[11px] text-ruhi-earth/80 hover:text-ruhi-deep underline-offset-2 hover:underline"
+              >
+                Edit
+              </button>
             </div>
+            <VoiceInput
+              label="What's in your kitchen"
+              placeholder="e.g. salmon, lentils, spinach, eggs, sweet potato..."
+              initialValue={pantry}
+              onResult={(text) => setPantry(text)}
+            />
           </div>
-          <p className="text-xs text-ruhi-earth mt-1">
-            {(() => {
-              const n = diffDaysISO(startDate, endDate) + 1
-              if (n < 1) return 'End date must be on or after start.'
-              if (n > 14) return 'Maximum 14 days at a time.'
-              return `${n} day${n === 1 ? '' : 's'} of meals`
-            })()}
-          </p>
-        </div>
 
-        {/* Pantry input — voice + text */}
-        <div className="w-full mb-6 screen-enter">
-          <label className="block text-base text-ruhi-earth mb-2">
-            What's already in your kitchen?
-          </label>
-          <VoiceInput
-            label="What's in your kitchen"
-            placeholder="e.g. salmon, lentils, spinach, eggs, sweet potato..."
-            initialValue={pantry}
-            onResult={(text) => setPantry(text)}
-          />
-          <p className="text-xs text-ruhi-earth mt-1">
-            Items you already have are subtracted from the shopping list.
-          </p>
-        </div>
+          <div className="h-px bg-ruhi-warm" aria-hidden="true" />
 
-        {/* Energy at planning time — informs dish complexity for the week */}
-        <div className="w-full mb-6 screen-enter">
-          <label htmlFor="weekly-energy" className="block text-base text-ruhi-earth mb-2">
-            Energy this week:{' '}
-            <span className="font-semibold text-ruhi-deep">{ENERGY_LABELS[energy]}</span>
-          </label>
-          <input
-            id="weekly-energy"
-            type="range"
-            min="1"
-            max="5"
-            value={energy}
-            onChange={(e) => setEnergy(Number(e.target.value))}
-            aria-valuetext={ENERGY_LABELS[energy]}
-            className="w-full accent-ruhi-deep"
-          />
-          <div aria-hidden="true" className="flex justify-between text-xs text-ruhi-earth mt-1">
-            <span>Low energy week</span>
-            <span>High energy week</span>
+          {/* Energy at planning time — informs dish complexity for the week */}
+          <div>
+            <label htmlFor="weekly-energy" className="block text-xs text-ruhi-earth mb-1.5">
+              Energy this week — <span className="font-semibold text-ruhi-deep">{ENERGY_LABELS[energy]}</span>
+            </label>
+            <input
+              id="weekly-energy"
+              type="range"
+              min="1"
+              max="5"
+              value={energy}
+              onChange={(e) => setEnergy(Number(e.target.value))}
+              aria-valuetext={ENERGY_LABELS[energy]}
+              className="w-full accent-ruhi-deep"
+            />
+            <p className="text-[11px] text-ruhi-earth/80 mt-1">
+              Lower = simpler recipes. Higher = room for ambition.
+            </p>
           </div>
-          <p className="text-xs text-ruhi-earth mt-1">
-            Lower energy = simpler recipes (assembly, leftovers). Higher = room for ambition.
-          </p>
         </div>
 
         {error && (
