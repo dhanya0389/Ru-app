@@ -21,11 +21,9 @@ const MOVEMENTS = [
 
 const GOALS = [
   'Make food decisions easy',
-  'More energy',
   'Better gut health',
   'Beat the 3pm slump',
   'Tame midnight cravings',
-  'Move more',
   'Eat more intentionally',
   'All of the above',
 ]
@@ -273,8 +271,8 @@ export default function Onboarding({
         />
         <button
           onClick={() => { update('avoidances', ''); next(); }}
-          className="block mx-auto mt-5 px-6 py-2.5 rounded-full border border-ruhi-earth/40
-                     text-sm text-ruhi-earth hover:bg-ruhi-warm/50 hover:border-ruhi-earth
+          className="block mx-auto mt-6 px-7 py-3 rounded-full border-2 border-ruhi-sage
+                     text-base text-ruhi-earth hover:bg-ruhi-warm hover:border-ruhi-deep
                      transition-colors"
         >
           Skip — no restrictions
@@ -439,7 +437,7 @@ function OptionButton({ label, selected, onTap, small = false, highlight = false
             ? 'border-ruhi-deep bg-ruhi-deep text-ruhi-cream scale-[1.03] shadow-md'
             : highlight
               ? 'border-ruhi-sage text-ruhi-deep hover:border-ruhi-deep bg-ruhi-sage/20'
-              : 'border-ruhi-earth/40 text-ruhi-earth hover:border-ruhi-earth hover:bg-white/40'
+              : 'border-ruhi-sage text-ruhi-earth hover:border-ruhi-deep hover:bg-ruhi-warm'
         }`}
     >
       {label}
