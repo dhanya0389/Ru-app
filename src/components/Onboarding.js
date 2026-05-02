@@ -36,7 +36,6 @@ const LIFE_STAGES = [
   'Thirties',
   'Forties',
   'Fifties',
-  'Sixties and beyond',
 ]
 
 const CARB_STRICTNESS_OPTIONS = [
