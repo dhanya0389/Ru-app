@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { saveProfile, getProfile } from '@/lib/storage'
 import VoiceInput from '@/components/VoiceInput'
+import OnboardingProgress from '@/components/OnboardingProgress'
 
 // ── Screen definitions ──────────────────────────────────────────────
 
@@ -374,37 +375,16 @@ export default function Onboarding({
 
   return (
     <div className="ruhi-bg min-h-screen flex flex-col relative z-10">
+      {/* Lotus progress — buds at the top of the screen open into blooms as
+          the user advances. Replaces the older bottom dots; quiet but
+          findable. Hidden in single-section edit mode (no flow to track). */}
+      <OnboardingProgress
+        current={step}
+        total={screens.length}
+        hidden={isSingleEdit}
+      />
       <div className="flex-1 flex flex-col">
         {screens[step]()}
-      </div>
-      {/* Progress dots — one per screen, filled as the user advances. Sits at
-          the bottom of the screen as a quiet pagination cue. Hidden in
-          single-section edit mode (no flow to track). */}
-      <div
-        className={`flex items-center justify-center gap-1.5 pt-2 pb-6 ${isSingleEdit ? 'invisible' : ''}`}
-        role="progressbar"
-        aria-valuenow={step + 1}
-        aria-valuemin={1}
-        aria-valuemax={screens.length}
-        aria-label={`Step ${step + 1} of ${screens.length}`}
-      >
-        {screens.map((_, i) => {
-          const isDone = i < step
-          const isCurrent = i === step
-          return (
-            <span
-              key={i}
-              aria-hidden="true"
-              className={`block h-1.5 rounded-full transition-all duration-400 ease-out
-                ${isCurrent
-                  ? 'w-6 bg-ruhi-deep'
-                  : isDone
-                    ? 'w-1.5 bg-ruhi-deep/70'
-                    : 'w-1.5 bg-ruhi-warm'}
-              `}
-            />
-          )
-        })}
       </div>
     </div>
   )
