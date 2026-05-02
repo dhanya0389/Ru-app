@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { phaseInfo } from '@/lib/phases'
+import { findRelevantEntries } from '@/lib/journal'
 import NavMenu from '@/components/NavMenu'
+import VoiceJournal from '@/components/VoiceJournal'
 
 // LoremFlickr serves Flickr Creative Commons photos by tag, no API key.
 // Loose tag matching pulls non-food photos when ingredient names overlap with
@@ -141,10 +143,24 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
   const [expandedCard, setExpandedCard] = useState(null) // null or 'meal' | 'movement' | 'energy'
   const [loading, setLoading] = useState(true)
   const [isFallback, setIsFallback] = useState(false)
+  const [showJournal, setShowJournal] = useState(false)
 
   useEffect(() => {
     generateCards()
   }, [])
+
+  // Pull 1–2 past journal entries from the same phase + day (±2) so the API
+  // can weave them silently into the cards. localStorage-only for cohort;
+  // Phase 2 swaps for a Supabase fetch.
+  function pastEntriesForCards() {
+    if (!phase) return []
+    return findRelevantEntries(phase.name, phase.day, 2).map((e) => ({
+      note: e.note,
+      day: e.day,
+      energy: e.energy,
+      timestamp: e.timestamp,
+    }))
+  }
 
   async function generateCards() {
     setLoading(true)
@@ -152,7 +168,10 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
       const res = await fetch('/api/generate-cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, phase, energy, cookingMood, kitchen }),
+        body: JSON.stringify({
+          profile, phase, energy, cookingMood, kitchen,
+          pastEntries: pastEntriesForCards(),
+        }),
       })
       if (!res.ok) throw new Error('API failed')
       const data = await res.json()
@@ -180,6 +199,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
         body: JSON.stringify({
           profile, phase, energy, cookingMood, kitchen,
           excludeMeal: cards?.meal?.title,
+          pastEntries: pastEntriesForCards(),
         }),
       })
       if (!res.ok) throw new Error('API failed')
@@ -215,29 +235,42 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
   // ── Full-screen expanded card overlay ───────────────────────────
   if (expandedCard) {
     return (
-      <div className="fixed inset-0 z-50 bg-ruhi-cream fullscreen-card-enter" role="dialog" aria-modal="true">
-        <div className="h-full overflow-y-auto">
-          <div className="max-w-md mx-auto px-6 py-8">
-            {/* Close button */}
-            <button
-              onClick={collapseCard}
-              className="mb-6 text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors flex items-center gap-1"
-            >
-              <span aria-hidden="true">←</span> Back to cards
-            </button>
+      <>
+        <div className="fixed inset-0 z-50 bg-ruhi-cream fullscreen-card-enter" role="dialog" aria-modal="true">
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-md mx-auto px-6 py-8">
+              {/* Close button */}
+              <button
+                onClick={collapseCard}
+                className="mb-6 text-sm text-ruhi-earth hover:text-ruhi-deep transition-colors flex items-center gap-1"
+              >
+                <span aria-hidden="true">←</span> Back to cards
+              </button>
 
-            {expandedCard === 'meal' && cards?.meal && (
-              <ExpandedMealCard meal={cards.meal} onSurprise={surpriseMe} onShowSources={showSources} />
-            )}
-            {expandedCard === 'movement' && cards?.movement && (
-              <ExpandedMovementCard movement={cards.movement} onShowSources={showSources} />
-            )}
-            {expandedCard === 'energy' && cards?.energy && (
-              <ExpandedEnergyCard energy={cards.energy} onShowSources={showSources} />
-            )}
+              {expandedCard === 'meal' && cards?.meal && (
+                <ExpandedMealCard meal={cards.meal} onSurprise={surpriseMe} onShowSources={showSources} />
+              )}
+              {expandedCard === 'movement' && cards?.movement && (
+                <ExpandedMovementCard movement={cards.movement} onShowSources={showSources} />
+              )}
+              {expandedCard === 'energy' && cards?.energy && (
+                <ExpandedEnergyCard
+                  energy={cards.energy}
+                  onShowSources={showSources}
+                  onAddJournal={() => setShowJournal(true)}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
+        {showJournal && (
+          <VoiceJournal
+            phase={phase}
+            energy={energy}
+            onClose={() => setShowJournal(false)}
+          />
+        )}
+      </>
     )
   }
 
@@ -296,6 +329,14 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
       <p className="text-xs text-ruhi-earth mt-4 text-center">
         Tap a card to open it
       </p>
+
+      {showJournal && (
+        <VoiceJournal
+          phase={phase}
+          energy={energy}
+          onClose={() => setShowJournal(false)}
+        />
+      )}
     </div>
   )
 }
@@ -476,7 +517,7 @@ function ExpandedMovementCard({ movement, onShowSources }) {
   )
 }
 
-function ExpandedEnergyCard({ energy, onShowSources }) {
+function ExpandedEnergyCard({ energy, onShowSources, onAddJournal }) {
   return (
     <div className="screen-enter">
       <div aria-hidden="true" className="w-12 h-12 rounded-full bg-ruhi-terracotta/20 flex items-center justify-center mb-5">
@@ -493,7 +534,26 @@ function ExpandedEnergyCard({ energy, onShowSources }) {
         <p className="text-sm text-ruhi-deep italic">{energy.tip}</p>
       </div>
 
-      <WhyThis practitioners={energy.practitioners} onShowSources={onShowSources} />
+      <div className="mb-4">
+        <WhyThis practitioners={energy.practitioners} onShowSources={onShowSources} />
+      </div>
+
+      {onAddJournal && (
+        <button
+          onClick={onAddJournal}
+          className="w-full py-3 rounded-full bg-ruhi-deep text-ruhi-cream text-sm
+                     hover:bg-ruhi-earth transition-all duration-300 hover:scale-[1.02]
+                     shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+          Add a journal note
+        </button>
+      )}
     </div>
   )
 }

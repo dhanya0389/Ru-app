@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { isOnboardingComplete, getProfile, clearProfile } from '@/lib/storage'
 import { getWeeklyPlan } from '@/lib/weeklyPlan'
+import { clearEntries as clearJournal } from '@/lib/journal'
 import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
 import TransitionScreen from '@/components/TransitionScreen'
@@ -10,6 +11,7 @@ import DailyCheckin from '@/components/DailyCheckin'
 import WeeklyMode from '@/components/WeeklyMode'
 import Sources from '@/components/Sources'
 import EditPantry from '@/components/EditPantry'
+import JournalScreen from '@/components/JournalScreen'
 
 // ISO date (YYYY-MM-DD) for "today" in local time.
 // Used to decide whether a saved weekly plan is still current.
@@ -72,12 +74,18 @@ export default function Home() {
       setScreen('pantry')
       return
     }
+    if (target === 'journal') {
+      setSourcesReturnTo(screen === 'weekly' ? 'weekly' : 'checkin')
+      setScreen('journal')
+      return
+    }
     if (target === 'welcome') {
       setScreen('landing')
       return
     }
     if (target === 'reset') {
       clearProfile()
+      clearJournal()
       setScreen('landing')
       return
     }
@@ -175,6 +183,17 @@ export default function Home() {
   if (screen === 'pantry') {
     return (
       <EditPantry
+        onBack={() => setScreen(sourcesReturnTo)}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={goTo}
+      />
+    )
+  }
+
+  if (screen === 'journal') {
+    return (
+      <JournalScreen
         onBack={() => setScreen(sourcesReturnTo)}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
