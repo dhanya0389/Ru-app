@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getProfile } from '@/lib/storage'
+import { getProfile, getPantry, savePantry } from '@/lib/storage'
 import { getCurrentPhase, phaseInfo } from '@/lib/phases'
 import VoiceInput from '@/components/VoiceInput'
 import CardView from '@/components/CardView'
@@ -33,6 +33,9 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
   useEffect(() => {
     const p = getProfile()
     setProfile(p)
+    // Pre-fill the kitchen field with the persisted pantry so the user
+    // doesn't have to retype their inventory every check-in.
+    setKitchen(getPantry())
     if (p?.lastPeriodStart) {
       const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
       const len = cycleLengthMap[p.cycleLength] || 28
@@ -130,14 +133,21 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
         <VoiceInput
           label="What's in your kitchen"
           placeholder="e.g. chickpeas, spinach, rice, chicken thighs..."
+          initialValue={kitchen}
           onResult={(text) => setKitchen(text)}
         />
-        <p className="text-sm text-ruhi-earth mt-1">Type, use voice, or leave blank — I'll work with what I know.</p>
+        <p className="text-sm text-ruhi-earth mt-1">Type, use voice, or leave blank — your pantry is remembered for next time.</p>
       </div>
 
       {/* CTA */}
       <button
-        onClick={() => setShowCards(true)}
+        onClick={() => {
+          // Persist the pantry on submit so the next check-in pre-fills.
+          // We save on submit (not every keystroke) so accidental typing in
+          // the field doesn't permanently alter the saved pantry.
+          savePantry(kitchen)
+          setShowCards(true)
+        }}
         className="w-full py-3 rounded-full bg-ruhi-deep text-ruhi-cream text-lg
                    hover:bg-ruhi-earth transition-all duration-300 hover:scale-[1.02]
                    shadow-lg shadow-ruhi-deep/20"
