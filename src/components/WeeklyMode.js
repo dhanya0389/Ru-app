@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getProfile } from '@/lib/storage'
+import { getProfile, getPantry, savePantry } from '@/lib/storage'
 import {
   getWeeklyPlan,
   saveWeeklyPlan,
@@ -99,6 +99,9 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     setProfile(getProfile())
     setOptIns(getOptIns())
     setPlan(getWeeklyPlan())
+    // Pre-fill the pantry field with what was persisted from the last
+    // Daily Check-in or pantry edit. Same string is shared across surfaces.
+    setPantry(getPantry())
   }, [])
 
   // Rotate tips while generating
@@ -128,6 +131,9 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     setGenerating(true)
     setError(null)
     setTipIndex(0)
+    // Persist the pantry on submit so the next visit (here or on Daily
+    // Check-in) pre-fills with the same inventory.
+    savePantry(pantry)
 
     const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
     const cycleLengthDays = cycleLengthMap[profile.cycleLength] || 28

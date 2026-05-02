@@ -9,6 +9,7 @@ import TransitionScreen from '@/components/TransitionScreen'
 import DailyCheckin from '@/components/DailyCheckin'
 import WeeklyMode from '@/components/WeeklyMode'
 import Sources from '@/components/Sources'
+import EditPantry from '@/components/EditPantry'
 
 // ISO date (YYYY-MM-DD) for "today" in local time.
 // Used to decide whether a saved weekly plan is still current.
@@ -62,6 +63,13 @@ export default function Home() {
       // Sources entry today, so we only need to track the two app surfaces.
       setSourcesReturnTo(screen === 'weekly' ? 'weekly' : 'checkin')
       setScreen('sources')
+      return
+    }
+    if (target === 'pantry') {
+      // Reuse the same return-to memory so closing the pantry editor sends
+      // you back to whichever surface launched it.
+      setSourcesReturnTo(screen === 'weekly' ? 'weekly' : 'checkin')
+      setScreen('pantry')
       return
     }
     if (target === 'welcome') {
@@ -156,6 +164,17 @@ export default function Home() {
   if (screen === 'sources') {
     return (
       <Sources
+        onBack={() => setScreen(sourcesReturnTo)}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={goTo}
+      />
+    )
+  }
+
+  if (screen === 'pantry') {
+    return (
+      <EditPantry
         onBack={() => setScreen(sourcesReturnTo)}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
