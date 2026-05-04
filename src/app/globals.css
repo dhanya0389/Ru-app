@@ -205,3 +205,47 @@ body {
   0%, 100% { transform: scale(0.94); opacity: 0.85; }
   50%      { transform: scale(1.05); opacity: 1;    }
 }
+
+/* ── Print stylesheet ───────────────────────────────────────────────
+   Strips app chrome when the user prints / saves-as-PDF the weekly
+   plan. Anything tagged with `data-no-print` is hidden — that covers
+   NavMenu, ThemePicker, the Vercel dev toolbar, the page-level CTAs,
+   and any other UI scaffolding not relevant on paper. The plan
+   content itself prints flat in black-on-white.
+   ----------------------------------------------------------------- */
+@media print {
+  /* Hide everything explicitly marked as chrome */
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Reset body to printable defaults */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Drop background images, shadows, and rounded ornamentation that
+     don't carry over to print well */
+  .ruhi-bg,
+  .ruhi-bg::before,
+  .ruhi-bg::after {
+    background: none !important;
+  }
+
+  /* Ensure cards print as plain blocks with light borders only */
+  .bg-white\/70,
+  .bg-white\/85,
+  .bg-white\/60,
+  .bg-white\/50,
+  .bg-white\/40 {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 1px solid #cccccc !important;
+  }
+
+  /* Hide tab switcher in print — show all relevant content stacked */
+  [role="tablist"] {
+    display: none !important;
+  }
+}

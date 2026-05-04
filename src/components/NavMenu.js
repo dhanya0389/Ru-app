@@ -17,26 +17,37 @@ const PROFILE_SECTIONS = [
 /**
  * Floating top-right menu giving one-click access to:
  *   - Today (Daily Check-in)
+ *   - This week (Weekly Mode)
+ *   - Journal (voice journal screen)
+ *   - Pantry (chip-list editor)
+ *   - Sources (practitioner attribution)
  *   - Welcome (Landing)
- *   - Any individual profile section (jumps Onboarding to that single screen)
- *   - Reset everything (with inline confirmation)
+ *   - Edit profile › (drills into the 9 profile sections + Reset)
  *
- * Mirrors the visual pattern of ThemePicker (bottom-right). Controlled component:
- * the parent owns `open` so the menu can be re-opened automatically after a
- * single-section save returns to Daily Check-in.
+ * Two-level drill-down (Pattern B per PR #17 design):
+ *   view = 'main'    → shows top-level destinations + Edit profile ›
+ *   view = 'profile' → ← Back · 9 profile sections · Reset everything
+ *
+ * Reset moved INSIDE the Edit profile drill-down so the user can't fat-
+ * finger it from the top level. Three taps to reach: open menu → Edit
+ * profile → Reset → confirm. Inline confirmation prompt is unchanged.
  *
  * Props:
  *   open       — boolean, whether the panel is shown
  *   setOpen    — setter for `open`
  *   onNavigate — function called with one of:
- *                  'today' | 'welcome' | 'reset' | { type: 'edit', step: number }
- *                The parent is responsible for routing and for closing the menu.
+ *                  'today' | 'weekly' | 'journal' | 'pantry' | 'sources' |
+ *                  'welcome' | 'reset' | { type: 'edit', step: number }
+ *                The parent is responsible for routing and for closing the
+ *                menu. NavMenu resets its own internal view state to 'main'
+ *                whenever `open` flips to false.
  */
 export default function NavMenu({ open, setOpen, onNavigate }) {
   const menuRef = useRef(null)
+  const [view, setView] = useState('main')
   const [confirmingReset, setConfirmingReset] = useState(false)
 
-  // Close menu when clicking outside
+  // Close on outside click
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -54,9 +65,13 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
     }
   }, [open, setOpen])
 
-  // Reset the confirm state when the menu closes
+  // When the menu closes, reset internal view state so reopening starts
+  // at the top level (not stuck inside Edit profile).
   useEffect(() => {
-    if (!open) setConfirmingReset(false)
+    if (!open) {
+      setView('main')
+      setConfirmingReset(false)
+    }
   }, [open])
 
   function handleConfirmReset() {
@@ -65,7 +80,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
   }
 
   return (
-    <div ref={menuRef} className="fixed top-6 right-6 z-50">
+    <div ref={menuRef} data-no-print className="fixed top-6 right-6 z-50">
       {open && (
         <div
           id="nav-menu"
@@ -74,55 +89,87 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
                      border border-white/50 screen-enter"
           style={{ minWidth: '220px' }}
         >
-          {/* Top-level destinations */}
-          <MenuItem onClick={() => onNavigate('today')} label="Today" />
-          <MenuItem onClick={() => onNavigate('weekly')} label="This week" />
-          <MenuItem onClick={() => onNavigate('journal')} label="Journal" />
-          <MenuItem onClick={() => onNavigate('pantry')} label="Pantry" />
-          <MenuItem onClick={() => onNavigate('sources')} label="Sources" />
-          <MenuItem onClick={() => onNavigate('welcome')} label="Welcome" />
+          {view === 'main' ? (
+            <>
+              {/* Top-level destinations */}
+              <MenuItem onClick={() => onNavigate('today')} label="Today" />
+              <MenuItem onClick={() => onNavigate('weekly')} label="This week" />
+              <MenuItem onClick={() => onNavigate('journal')} label="Journal" />
+              <MenuItem onClick={() => onNavigate('pantry')} label="Pantry" />
+              <MenuItem onClick={() => onNavigate('sources')} label="Sources" />
+              <MenuItem onClick={() => onNavigate('welcome')} label="Welcome" />
 
-          <Divider />
-          <SectionLabel>Edit profile</SectionLabel>
-          {PROFILE_SECTIONS.map((s) => (
-            <MenuItem
-              key={s.step}
-              onClick={() => onNavigate({ type: 'edit', step: s.step })}
-              label={s.label}
-              indent
-              compact
-            />
-          ))}
+              <Divider />
 
-          <Divider />
-          {confirmingReset ? (
-            <div className="px-3 py-2">
-              <p className="text-xs text-ruhi-deep mb-2 leading-snug">
-                Reset everything? This clears your profile and starts you over.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirmingReset(false)}
-                  className="flex-1 text-xs py-1.5 rounded-full border border-ruhi-earth/40
-                             text-ruhi-earth hover:bg-white/60 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmReset}
-                  className="flex-1 text-xs py-1.5 rounded-full bg-ruhi-deep text-ruhi-cream
-                             hover:bg-ruhi-earth transition-colors"
-                >
-                  Yes, reset
-                </button>
-              </div>
-            </div>
+              {/* Drill-down into profile editing + Reset (kept off the top
+                  level so Reset is harder to hit by accident). */}
+              <MenuItem
+                onClick={() => setView('profile')}
+                label="Edit profile"
+                trailing={<Chevron />}
+              />
+            </>
           ) : (
-            <MenuItem
-              onClick={() => setConfirmingReset(true)}
-              label="Reset everything"
-              destructive
-            />
+            <>
+              {/* Back to top-level */}
+              <button
+                type="button"
+                onClick={() => {
+                  setView('main')
+                  setConfirmingReset(false)
+                }}
+                className="w-full text-left rounded-xl px-3 py-2 text-sm text-ruhi-earth
+                           hover:bg-white/70 hover:text-ruhi-deep transition-colors flex items-center gap-2"
+              >
+                <span aria-hidden="true">←</span>
+                <span>Back</span>
+              </button>
+
+              <SectionLabel>Edit profile</SectionLabel>
+              {PROFILE_SECTIONS.map((s) => (
+                <MenuItem
+                  key={s.step}
+                  onClick={() => onNavigate({ type: 'edit', step: s.step })}
+                  label={s.label}
+                  indent
+                  compact
+                />
+              ))}
+
+              <Divider />
+              {confirmingReset ? (
+                <div className="px-3 py-2">
+                  <p className="text-xs text-ruhi-deep mb-1.5 leading-snug">
+                    Reset everything?
+                  </p>
+                  <p className="text-[11px] text-ruhi-earth/80 mb-2 leading-snug">
+                    Clears your profile, journal, and weekly plan. Pantry stays.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmingReset(false)}
+                      className="flex-1 text-xs py-1.5 rounded-full border border-ruhi-earth/40
+                                 text-ruhi-earth hover:bg-white/60 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmReset}
+                      className="flex-1 text-xs py-1.5 rounded-full bg-ruhi-deep text-ruhi-cream
+                                 hover:bg-ruhi-earth transition-colors"
+                    >
+                      Yes, reset
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <MenuItem
+                  onClick={() => setConfirmingReset(true)}
+                  label="Reset everything"
+                  destructive
+                />
+              )}
+            </>
           )}
         </div>
       )}
@@ -151,7 +198,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
   )
 }
 
-function MenuItem({ onClick, label, indent = false, compact = false, destructive = false }) {
+function MenuItem({ onClick, label, indent = false, compact = false, destructive = false, trailing = null }) {
   return (
     <button
       onClick={onClick}
@@ -162,10 +209,31 @@ function MenuItem({ onClick, label, indent = false, compact = false, destructive
         ${destructive
           ? 'text-ruhi-earth hover:bg-ruhi-rose/20'
           : 'text-ruhi-deep hover:bg-white/70'
-        }`}
+        }
+        flex items-center justify-between gap-2`}
     >
       <span className={compact ? 'text-[13px]' : 'text-sm'}>{label}</span>
+      {trailing}
     </button>
+  )
+}
+
+function Chevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-ruhi-earth/60 flex-shrink-0"
+    >
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
   )
 }
 
@@ -175,7 +243,7 @@ function Divider() {
 
 function SectionLabel({ children }) {
   return (
-    <p className="px-3 pb-1 text-[10px] uppercase tracking-widest text-ruhi-earth/70">
+    <p className="px-3 pb-1 pt-1 text-[10px] uppercase tracking-widest text-ruhi-earth/70">
       {children}
     </p>
   )
