@@ -88,7 +88,7 @@ SUPPLEMENTS:
 SEED CYCLING (opt-in by user):
 - ${seedCycling ? 'User does seed cycling. Surface a phaseBall reminder appropriate for the cycle-day range of this week (Phase 1: days 1–14 = flax + pumpkin; Phase 2: days 15–28 = sesame + sunflower). One ball per day. Note when they need to make the next batch.' : 'User does not do seed cycling — do not surface phase-ball reminders.'}
 
-Generate a weekly menu that the user picks from across 7 days. The menu has 3–4 dishes per meal-type (so users can rotate, meal-prep style).`
+Generate a weekly menu that the user picks from across ${weekDays.length} days. The menu has 3–4 dishes per meal-type (so users can rotate, meal-prep style — the same dish appears on multiple days when the window is longer than the dish pool).`
 
   const userMessage = `Generate my weekly menu for the week of ${weekDays[0]?.date}.
 

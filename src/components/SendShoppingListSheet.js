@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   GROCERY_SERVICES,
-  fitItemsToUrl,
   formatHumanList,
+  extractItemName,
 } from '@/lib/groceryDeepLinks'
 
 /**
@@ -59,12 +59,29 @@ export default function SendShoppingListSheet({ open, onClose, items }) {
 
   if (!open) return null
 
-  const { items: sentItems, truncated } = fitItemsToUrl(items)
-  const searchQuery = sentItems.join(' ')
+  // Old behavior joined ALL items into one search-param — Target/Safeway 404'd
+  // on the over-long URL, Amazon/Kroger interpreted the whole string as one
+  // search and returned the first matching item. There's no public deep link
+  // for any of these brands that prefills a multi-item cart (that's what the
+  // Instacart Connect API is for, Phase 2). So: open the FIRST item's search
+  // and put the full list on the clipboard simultaneously, with a clear nudge.
+  const firstItemQuery = extractItemName(items[0] || '')
   const humanList = formatHumanList(items)
 
-  function openService(service) {
-    const url = service.buildUrl(searchQuery)
+  async function openService(service) {
+    if (!firstItemQuery) {
+      onClose()
+      return
+    }
+    // Best-effort clipboard copy. Some browsers require a user-gesture for
+    // clipboard.writeText — clicking a service button qualifies. Failures are
+    // non-fatal; the user can still hit "Copy list" below.
+    try {
+      await navigator.clipboard?.writeText(humanList)
+    } catch {
+      // ignore — store still opens
+    }
+    const url = service.buildUrl(firstItemQuery)
     window.open(url, '_blank', 'noopener,noreferrer')
     onClose()
   }
@@ -132,10 +149,11 @@ export default function SendShoppingListSheet({ open, onClose, items }) {
           </button>
         </div>
 
-        {truncated && (
-          <div className="mx-5 mb-3 p-3 rounded-xl bg-ruhi-peach/30 border border-ruhi-peach/40 text-xs text-ruhi-deep">
-            Long list — services will receive your top {sentItems.length} items.
-            Use Copy below for the full list.
+        {items.length > 1 && firstItemQuery && (
+          <div className="mx-5 mb-3 p-3 rounded-xl bg-ruhi-peach/30 border border-ruhi-peach/40 text-xs text-ruhi-deep leading-relaxed">
+            Tap a store below — your first item ({firstItemQuery}) opens in
+            search and your full list copies to your clipboard. Paste as you
+            shop. (Real cart-prefill is on the post-cohort roadmap.)
           </div>
         )}
 
