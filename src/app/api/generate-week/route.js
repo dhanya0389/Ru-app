@@ -168,9 +168,13 @@ INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - For tiny amounts (spices, salt, lemon squeeze), keep them human ("1 tsp turmeric", "salt to taste").
 - Avoid vague volumes like "1 cup chickpeas" — write "150g cooked chickpeas" instead, since cup-to-gram conversions differ wildly by ingredient density.
 
-PANTRY AWARENESS:
-- The user has provided a pantry list. Prefer dishes that use those items.
-- Do not require ingredients the user already lacks if reasonable substitutions exist within their pantry.
+PANTRY — A HINT, NOT A CONSTRAINT:
+- The user's pantry is shared with you so you can be efficient (use what's already there when reasonable). It is NOT a hard ceiling on what dishes you can suggest.
+- Cuisine + diet + phase drive creativity. The pantry is just a head-start.
+- If pantry is sparse (only condiments + sauces, or fewer than 5 staples): generate creative cuisine-matching dishes using commonly-available grocery items. The shopping list will tell the user what to buy. Do NOT under-build the menu just because the pantry is empty.
+- If pantry is rich: lean on it where it makes the cooking easier, but still rotate cuisines and dishes for variety. A user with chickpeas in the pantry shouldn't get chickpeas in 6 dishes — they get a creative weekly menu where chickpeas appear in the 1-2 dishes that genuinely benefit.
+- When pantry contains a forbidden ingredient (vegetarian + salmon, vegan + eggs): IGNORE that pantry item completely. Diet > pantry, always.
+- Pull from the wide world of recipes the user's chosen cuisines support. Indian + Mediterranean alone has hundreds of distinct dishes — variety isn't a constraint, it's an asset.
 
 CUISINE ADHERENCE — STRICT:
 - The user picks 1–3 cuisines during onboarding. Every dish MUST sit inside that cuisine palette. If the user picked "Indian, Mediterranean", do NOT generate Japanese, Thai, Mexican, or American dishes — even if the ingredients overlap.
