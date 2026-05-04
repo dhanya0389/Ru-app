@@ -128,9 +128,34 @@ DINNER (target 350–430 kcal · 30–35g protein):
 
 If any single component (avocado, oil drizzle, grain serving) is >150 kcal, you're probably blowing the budget. CHECK YOUR TOTALS before finalizing each dish. Lunches and dinners are the highest-risk — do NOT exceed the upper bound.
 
-PROTEIN FLOOR (in addition to the per-meal target ranges above):
-- Default: 25g minimum per meal (30g+ for luteal/menstrual when blood sugar regulation matters most)
-- If bodyData.proteinFloor is provided, use that instead.
+PROTEIN FLOOR — flat 35g for breakfasts/lunches/dinners (HARD MINIMUM):
+- Every breakfast: ≥35g protein
+- Every lunch: ≥35g protein
+- Every dinner: ≥35g protein
+- Snacks: 10–15g protein only (snacks are top-ups, NOT meal-sized)
+- USDA-verified portions — "2 eggs" alone is ~12g protein, NOT 35g. Combine
+  multiple protein sources to hit the floor (e.g., 2 eggs + 150g Greek
+  yogurt + 30g paneer = 35g protein). Do not hand-wave portion math.
+- Daily total naturally lands at 105 + 10–15 = 115–120g/day from this rule
+  alone — no separate daily-total check needed.
+- If bodyData.proteinFloor is provided AND it's higher than 35g, use that instead.
+
+DIET — HARD RULE (overrides every other rule including pantry):
+- The user's "diet" setting in profile is the ONLY source of truth for what
+  proteins they eat. Never let pantry items override diet.
+- VEGETARIAN: NO meat (beef/pork/chicken/turkey/duck/lamb/etc.), NO fish or
+  seafood. Eggs ✓, dairy ✓ (cheese/yogurt/milk/butter/ghee/paneer/kefir).
+  Anchor protein on: 200g Greek yogurt (~20g), 2 eggs (~12g), paneer
+  (~12g per 50g), cottage cheese (~24g per 200g), tempeh, tofu.
+- VEGAN: NO animal products. NO meat, NO fish, NO eggs, NO dairy, NO honey.
+  Anchor protein on: 200g extra-firm tofu (~32g), 100g tempeh (~20g), seitan,
+  lentils, chickpeas, hemp seeds, nutritional yeast. Often need 2-3 plant
+  proteins combined to hit 35g floor.
+- PESCATARIAN: NO meat. Fish + dairy + eggs ✓.
+- EVERYTHING: no restrictions.
+- IF the pantry contains an ingredient that violates the user's diet (e.g.,
+  user is vegetarian but pantry has salmon) → IGNORE that pantry item.
+  Diet > pantry, ALWAYS. Never even mention it in suggested dishes.
 
 VOICE / WRITING RULES:
 - Recipe body copy ("title", "steps", drink "reason", phase-transition callouts) stays in Ruhi's voice — direct, warm, embodied; first person where natural. Do NOT name-drop practitioners inside body copy ("Vitti says…", "per Pelz…"). The practitioner attribution lives ONLY in the structured \`practitioners\` field on each dish; the UI surfaces it separately.

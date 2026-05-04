@@ -26,26 +26,19 @@ const MEAL_TARGETS = {
   meal:       { kcal: [350, 430] },
 }
 
-// Phase + diet aware protein floors (and ceilings — protein well over the
-// upper bound usually means oversized animal-protein portions which also
-// blow the calorie cap). The vegan/vegetarian floors are deliberately
-// relaxed because hitting 30g+ from plants alone forces 600+ kcal meals.
+// Flat 35g protein floor for every breakfast/lunch/dinner regardless of
+// diet or phase, per Dhanya's May 4 call: "every meal that comes in should
+// have a minimum of 35g of protein. That 35g should be approximately
+// accurate to USDA data." Daily total naturally lands at 105 + snack →
+// 115-120g/day, hitting her Notion target without a separate daily check.
+//
+// Snacks stay smaller (10-15g) — they're a top-up, not a meal.
+//
+// Upper bounds are loose (50g for meals) so the validator doesn't penalize
+// a slightly protein-rich dish that fits the calorie cap.
 function proteinTargetFor(diet, phaseName, mealType) {
-  const phase = String(phaseName || '').toLowerCase()
-  const isHigh = phase === 'luteal' || phase === 'menstrual'
-  // Snacks are smaller-targets across the board
   if (mealType === 'snacks') return [10, 15]
-
-  const d = String(diet || 'everything').toLowerCase()
-  if (d === 'vegan') return isHigh ? [22, 28] : [18, 24]
-  if (d === 'vegetarian') return isHigh ? [27, 33] : [22, 28]
-  // pescatarian + everything: same — both have animal protein available
-  // For lunches the floor is higher (35-40g); use that when mealType is lunch
-  if (mealType === 'lunches') return isHigh ? [38, 42] : [35, 40]
-  // Breakfasts: smaller protein target than lunch/dinner
-  if (mealType === 'breakfasts') return [25, 30]
-  // Dinners + the daily 'meal' card
-  return isHigh ? [30, 35] : [28, 33]
+  return [35, 50]
 }
 
 // Carb cap — driven by user's carbStrictness setting (gentle vs standard)
@@ -66,6 +59,75 @@ function carbCapFor(carbStrictness, phaseName, mealType) {
 function fatRangeFor(mealType) {
   if (mealType === 'snacks') return [3, 18]
   return [8, 28]
+}
+
+// Diet violation detection — diet is a HARD rule that overrides pantry.
+// If the user's profile says vegetarian and the AI generated a salmon
+// dish (because salmon was in the pantry), that's a trust-breaking bug.
+// We scan each ingredient against forbidden patterns and trigger retry.
+//
+// Patterns are case-insensitive word-boundary regexes. "egg" matches
+// "egg/eggs/egg whites/scrambled egg" but not "eggplant" (word boundary
+// requires non-letter to follow).
+const MEAT_PATTERN = /\b(beef|pork|chicken|turkey|duck|goose|lamb|veal|venison|rabbit|bacon|sausage|ham|prosciutto|chorizo|salami|pepperoni|bratwurst|hot ?dog|mutton|steak|brisket|tenderloin|short ?ribs?)\b/i
+const FISH_PATTERN = /\b(salmon|tuna|cod|halibut|trout|sardines?|anchov(?:y|ies)|mackerel|tilapia|haddock|sea ?bass|swordfish|sole|bream|snapper|perch|catfish)\b/i
+const SHELLFISH_PATTERN = /\b(shrimp|prawns?|lobster|crab|crayfish|scallops?|oysters?|clams?|mussels?|squid|octopus|calamari|crawfish)\b/i
+const DAIRY_PATTERN = /\b(milk|cream|butter(?!nut)|ghee|cheese|cheddar|mozzarella|parmesan|feta|paneer|cottage ?cheese|ricotta|brie|gouda|provolone|goat ?cheese|halloumi|yog(?:h)?urt|kefir|whey|casein|sour ?cream)\b/i
+const EGG_PATTERN = /\beggs?\b|\begg ?whites?\b|\byolks?\b/i
+const HONEY_PATTERN = /\bhoney\b/i
+
+const FORBIDDEN_BY_DIET = {
+  vegan: [
+    { pattern: MEAT_PATTERN, label: 'meat' },
+    { pattern: FISH_PATTERN, label: 'fish' },
+    { pattern: SHELLFISH_PATTERN, label: 'shellfish' },
+    { pattern: DAIRY_PATTERN, label: 'dairy' },
+    { pattern: EGG_PATTERN, label: 'eggs' },
+    { pattern: HONEY_PATTERN, label: 'honey' },
+  ],
+  vegetarian: [
+    { pattern: MEAT_PATTERN, label: 'meat' },
+    { pattern: FISH_PATTERN, label: 'fish' },
+    { pattern: SHELLFISH_PATTERN, label: 'shellfish' },
+  ],
+  pescatarian: [
+    { pattern: MEAT_PATTERN, label: 'meat' },
+  ],
+  // 'everything' / unspecified → no restrictions
+}
+
+// Plant-derived "dairy" terms — these should NEVER trigger the dairy
+// violation pattern. "oat milk", "coconut cream", "almond yogurt", etc. are
+// vegan-compliant. Without this exclusion the bare \bmilk\b alternative
+// matches "milk" inside "oat milk" and incorrectly flags vegan dishes.
+const PLANT_DAIRY_RE = /\b(oat|almond|soy|soya|coconut|rice|hemp|cashew|macadamia|pea|hazelnut|flax|walnut|sunflower|sesame|pumpkin ?seed|tigernut)\s+(milk|cream|yog(?:h)?urt|butter|cheese|kefir)\b/gi
+
+/**
+ * Scan a dish's ingredient list for items forbidden by the user's diet.
+ * Returns an array of { ingredient, label } for each violation found,
+ * or empty array if the dish is diet-compliant.
+ */
+function findDietViolations(ingredients, diet) {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return []
+  const d = String(diet || '').toLowerCase()
+  const rules = FORBIDDEN_BY_DIET[d]
+  if (!rules) return []  // 'everything' / unknown → permit everything
+  const violations = []
+  for (const rawIng of ingredients) {
+    if (typeof rawIng !== 'string') continue
+    // Strip plant-derived dairy phrases before pattern matching so
+    // "oat milk" / "coconut cream" / "almond yogurt" don't trigger the
+    // dairy violation pattern. Replace with a non-word filler that breaks
+    // the dairy regex's word-boundary anchors.
+    const ing = rawIng.replace(PLANT_DAIRY_RE, '$1plant$2')
+    for (const { pattern, label } of rules) {
+      if (pattern.test(ing)) {
+        violations.push({ ingredient: rawIng, label })
+        break  // one violation per ingredient is enough
+      }
+    }
+  }
+  return violations
 }
 
 // Parse a macros string ("28g protein · 38g carbs · 12g fat") into numbers.
@@ -182,6 +244,17 @@ export function validateDish(dish, mealType, ctx = {}) {
     }
   }
 
+  // Diet violations — HARD rule, always severe. Trust-breaking bug class:
+  // a vegetarian user must never see chicken/salmon, vegan user must never
+  // see eggs/dairy. Pantry contents do NOT override diet.
+  const dietViolations = findDietViolations(dish?.ingredients, ctx.diet)
+  if (dietViolations.length > 0) {
+    issues.push({
+      rule: 'diet', actual: dietViolations, expected: ctx.diet, severity: 'severe',
+      message: `Diet violation (${ctx.diet}): contains ${dietViolations.map(v => `"${v.ingredient}" (${v.label})`).join(', ')}. Replace with diet-compliant alternative.`,
+    })
+  }
+
   const severe = issues.some((i) => i.severity === 'severe')
   return {
     valid: issues.length === 0,
@@ -203,19 +276,45 @@ export function buildRetryConstraints(mealType, ctx, validation) {
     ? ctx.cuisines.join(', ')
     : 'any'
 
+  // Build diet-aware protein-source guidance for the retry. Different from
+  // the main prompt because Haiku gets a focused single-dish task and
+  // benefits from spelling out exactly what's permitted.
+  const diet = String(ctx.diet || '').toLowerCase()
+  let proteinGuidance
+  if (diet === 'vegan') {
+    proteinGuidance = `DIET = VEGAN. NO meat, NO fish, NO eggs, NO dairy (no cheese/yogurt/milk/butter/ghee/paneer/kefir), NO honey. Anchor on tempeh (~20g pro / 100g), firm tofu (~16g pro / 100g), seitan, lentils, chickpeas, hemp seeds (~10g pro / 30g), nutritional yeast. Combine 2-3 plant proteins to hit the 35g floor.`
+  } else if (diet === 'vegetarian') {
+    proteinGuidance = `DIET = VEGETARIAN. NO meat, NO fish/seafood. Eggs, dairy, paneer, Greek yogurt, kefir, cottage cheese, cheese all OK. Anchor on Greek yogurt (~20g pro / 200g), 2-3 eggs (~12g), paneer (~12g pro / 50g), cottage cheese (~24g pro / 200g), tempeh, tofu.`
+  } else if (diet === 'pescatarian') {
+    proteinGuidance = `DIET = PESCATARIAN. NO meat. Fish/seafood, eggs, dairy all OK. Anchor on salmon/tuna/white fish (100-150g cooked) or eggs/Greek yogurt.`
+  } else {
+    proteinGuidance = `DIET = ${ctx.diet || 'everything'}. Anchor on animal protein (100-150g cooked chicken/salmon/fish/eggs/Greek yogurt). Plant protein as side, max 100g cooked.`
+  }
+
   return `Meal type: ${mealType}
-Target: ${calRange[0]}–${calRange[1]} kcal · ${protRange[0]}–${protRange[1]}g protein · ≤${carbCap}g carbs
+Target: ${calRange[0]}–${calRange[1]} kcal · ≥${protRange[0]}g protein (floor — go higher if needed to hit 35g) · ≤${carbCap}g carbs
 Diet: ${ctx.diet || 'everything'}
 Cycle phase: ${ctx.phaseName || 'unknown'}
 Carb strictness: ${ctx.carbStrictness || 'gentle'}
 Cuisines (preserve): ${cuisines}
-${ctx.pantry ? `Pantry available: ${ctx.pantry}` : ''}
+${ctx.pantry ? `Pantry hints (DIET OVERRIDES these — ignore any pantry item that violates the diet): ${ctx.pantry}` : ''}
+
+${proteinGuidance}
 
 Issues to fix:
 ${validation.issues.map((i) => `- ${i.message}`).join('\n')}
 
-Anchor on animal protein for lunches/dinners (100–150g chicken/salmon/fish/eggs/Greek yogurt) UNLESS user is vegan. Plant protein (lentils/chickpeas) as a side, max 100g cooked. Avocado max 100g (½ fruit). Eggs max 2. Olive oil max 1 tbsp. Use grams in the ingredients list — the math is enforced by USDA.`
+Avocado max 100g (½ fruit). Olive oil max 1 tbsp. Use grams in the ingredients list — the math is enforced by USDA. Diet is a HARD rule — never include forbidden ingredients even if they're in the pantry.`
 }
 
 // Exposed for tests + retry call.
-export { MEAL_TARGETS, proteinTargetFor, carbCapFor, fatRangeFor, parseMacros, parseCalories }
+export {
+  MEAL_TARGETS,
+  proteinTargetFor,
+  carbCapFor,
+  fatRangeFor,
+  parseMacros,
+  parseCalories,
+  findDietViolations,
+  FORBIDDEN_BY_DIET,
+}

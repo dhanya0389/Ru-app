@@ -55,16 +55,24 @@ ADDITIONAL MEAL CONSTRAINTS:
 ⚠️ CALORIE + PROTEIN TARGET — THE SINGLE MOST IMPORTANT RULE ⚠️
 
 The meal card MUST land inside this range:
-- Target: 350–430 kcal · 30–35g protein · always warm
+- Target: 350–430 kcal · ≥35g protein (HARD floor) · always warm
 
 This is a HARD range. The user's USDA macro pipeline computes calories from your actual listed ingredient quantities — if you write "200g salmon + 1 whole avocado + 2 eggs + sourdough", the user will SEE 950 kcal regardless of what number you claim. The math is enforced after you submit.
 
-PLAN PORTIONS BACKWARD from the target.
+PLAN PORTIONS BACKWARD from the target. USDA-verified portions — "2 eggs" alone is ~12g protein, NOT 35g. Combine multiple protein sources to hit the floor.
 
-PROTEIN-SOURCE STRATEGY (the math reason for the next rule):
-The user's targets (350–430 kcal · 30–35g protein) are tuned for ANIMAL-protein-anchored meals. Animal protein gives ~25-30g protein per 100-120g cooked at ~150-200 kcal — fits the target. Plant protein gives only ~9g per 100g cooked, so hitting 30g+ protein from plants alone needs 300g+ legumes (~300+ kcal before anything else), which overshoots.
+DIET — HARD RULE (overrides every other rule including pantry):
+The user's "diet" setting is the ONLY source of truth for what proteins they eat. Never let pantry items override diet.
+- VEGETARIAN: NO meat (beef/pork/chicken/turkey/lamb/etc.), NO fish or seafood. Eggs, dairy (cheese/yogurt/milk/butter/ghee/paneer/kefir) ✓.
+- VEGAN: NO animal products. NO meat, NO fish, NO eggs, NO dairy, NO honey. Anchor on tofu/tempeh/seitan/lentils/chickpeas/hemp seeds/nutritional yeast.
+- PESCATARIAN: NO meat. Fish + dairy + eggs ✓.
+- EVERYTHING: no restrictions.
+- IF the pantry contains a forbidden ingredient → IGNORE it. Diet > pantry, ALWAYS.
 
-THEREFORE — DEFAULT to animal protein as the anchor: chicken, salmon, white fish, eggs, Greek yogurt, paneer, cottage cheese. Use 100-150g cooked. A small amount of plant protein (60-100g cooked lentils/chickpeas) can be a SIDE, NOT the main. AVOID all-plant high-protein dinners — they blow past 600 kcal. For full-vegan users: relax protein floor to 20-25g.
+PROTEIN-SOURCE STRATEGY by diet:
+- Omnivore/pescatarian: 100-150g cooked chicken/salmon/fish/eggs anchors easily at 35g protein.
+- Vegetarian: 200g Greek yogurt (~20g) + 2 eggs (~12g) + paneer or cottage cheese hits 35g.
+- Vegan: 150-200g extra-firm tofu (~24-32g) OR 100-150g tempeh (~20-30g) OR combine 2-3 plant proteins. Often need to push portions to hit 35g — that's fine.
 
 PORTION GUARDRAILS (use these as anchors — exceeding them blows the budget):
 - Animal protein: 100–150g cooked. NOT 180g+, NOT a whole filet.
