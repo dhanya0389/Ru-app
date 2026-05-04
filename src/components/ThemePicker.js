@@ -36,7 +36,7 @@ export default function ThemePicker() {
   }
 
   return (
-    <div ref={menuRef} className="fixed bottom-6 right-6 z-50">
+    <div ref={menuRef} data-no-print className="fixed bottom-6 right-6 z-50">
       {/* Expanded menu */}
       {open && (
         <div

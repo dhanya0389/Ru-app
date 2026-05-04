@@ -21,6 +21,7 @@ import TopTabs from '@/components/TopTabs'
 import VoiceInput from '@/components/VoiceInput'
 import PantryImageUpload from '@/components/PantryImageUpload'
 import SendShoppingListSheet from '@/components/SendShoppingListSheet'
+import PlanActionsSheet from '@/components/PlanActionsSheet'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -106,6 +107,8 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   // When user taps a menu tile, we render an expanded recipe view in place
   // of the tab content (same pattern as CardView's full-screen expand).
   const [expandedRecipe, setExpandedRecipe] = useState(null)
+  // "..." actions sheet visibility — Print / Email / Share / Regenerate.
+  const [actionsOpen, setActionsOpen] = useState(false)
 
   useEffect(() => {
     setProfile(getProfile())
@@ -360,54 +363,65 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
       <TopTabs active="weekly" onSelect={onNavigate} />
 
-      {/* Header — week range + phase progression */}
+      {/* Header — week range + phase progression + "..." actions */}
       <div className="w-full mb-4">
-        <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Planning</p>
-        <h2 className="font-display text-xl text-ruhi-deep mb-3">
-          {formatDate(plan.days[0].date)} – {formatDate(plan.days[plan.days.length - 1].date)}
-        </h2>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-1">Planning</p>
+            <h2 className="font-display text-xl text-ruhi-deep">
+              {formatDate(plan.days[0].date)} – {formatDate(plan.days[plan.days.length - 1].date)}
+            </h2>
+          </div>
+          <button
+            data-no-print
+            type="button"
+            onClick={() => setActionsOpen(true)}
+            aria-label="Plan actions — print, email, share, or regenerate"
+            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/70 border border-white/60
+                       text-ruhi-earth hover:text-ruhi-deep hover:bg-white hover:shadow-sm
+                       transition-all flex items-center justify-center"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
+            </svg>
+          </button>
+        </div>
         <PhaseProgression days={plan.days} />
       </div>
 
-      {/* Phase transition callouts */}
-      {plan.phaseTransitionCallouts?.length > 0 && (
-        <div className="w-full mb-4 space-y-2">
-          {plan.phaseTransitionCallouts.map((callout, i) => (
-            <div key={i} className="bg-ruhi-warm/40 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
-              {callout}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Phase transitions + seed cycling note collapsed into ONE expandable
+          pill — was three free-floating boxes stacking ~3 vertical lines on
+          mobile. Single tap-to-expand keeps the info accessible without
+          taking real estate by default. */}
+      <PlanNotes
+        callouts={plan.phaseTransitionCallouts || []}
+        seedCyclingNote={plan.seedCyclingNote}
+      />
 
-      {/* Seed cycling note */}
-      {plan.seedCyclingNote && (
-        <div className="w-full mb-4 bg-ruhi-sage/20 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
-          🌱 {plan.seedCyclingNote}
-        </div>
-      )}
 
-      {/* Tabs */}
+      {/* Tabs — Week tab dropped (duplicated info covered by Menu + Shopping;
+          per-day grid felt cluttered on mobile). Menu = what's on the menu,
+          Shopping = what to buy. Two clear modes. */}
       <div className="w-full flex gap-1 mb-4 bg-white/40 rounded-full p-1">
         <TabButton active={tab === 'menu'} onClick={() => setTab('menu')}>Menu</TabButton>
-        <TabButton active={tab === 'week'} onClick={() => setTab('week')}>Week</TabButton>
         <TabButton active={tab === 'shopping'} onClick={() => setTab('shopping')}>Shopping</TabButton>
       </div>
 
       {/* Tab content */}
       {tab === 'menu' && <MenuTab menu={plan.menu} onOpenRecipe={setExpandedRecipe} />}
-      {tab === 'week' && <WeekTab plan={plan} onOpenRecipe={setExpandedRecipe} />}
       {tab === 'shopping' && <ShoppingTab shoppingList={plan.shoppingList || []} />}
 
-      {/* Bottom actions */}
-      <div className="w-full mt-6 flex flex-col gap-2">
-        <button
-          onClick={() => { clearWeeklyPlan(); setPlan(null); }}
-          className="text-xs text-ruhi-earth hover:text-ruhi-deep transition-colors text-center"
-        >
-          Regenerate this week
-        </button>
-      </div>
+      {/* Regenerate moved into the "..." actions sheet — keeps the bottom of
+          the plan clean and groups all plan-level actions in one place. */}
+
+      <PlanActionsSheet
+        open={actionsOpen}
+        onClose={() => setActionsOpen(false)}
+        plan={plan}
+        onRegenerate={() => { clearWeeklyPlan(); setPlan(null); }}
+      />
     </div>
   )
 }
@@ -445,6 +459,54 @@ function TabButton({ active, onClick, children }) {
     >
       {children}
     </button>
+  )
+}
+
+// Expandable pill that collapses phase-transition callouts + seed-cycling
+// note into one row. Renders nothing when both are empty (the typical case
+// for mid-phase weeks). Tap to expand → callouts + seed note appear in a
+// soft warm card. Tap again to collapse.
+function PlanNotes({ callouts, seedCyclingNote }) {
+  const [expanded, setExpanded] = useState(false)
+  const noteCount = (callouts?.length || 0) + (seedCyclingNote ? 1 : 0)
+  if (noteCount === 0) return null
+
+  return (
+    <div className="w-full mb-4">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-full
+                   bg-ruhi-warm/40 border border-ruhi-warm hover:bg-ruhi-warm/60
+                   transition-colors text-xs text-ruhi-deep"
+      >
+        <span className="flex items-center gap-2">
+          <span aria-hidden="true" className="w-4 h-4 rounded-full bg-ruhi-deep/15 text-ruhi-deep flex items-center justify-center text-[10px] font-medium">i</span>
+          <span>This week&apos;s notes</span>
+          <span className="text-ruhi-earth/70 tabular-nums">({noteCount})</span>
+        </span>
+        <span aria-hidden="true" className={`text-ruhi-earth/70 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {expanded && (
+        <div className="mt-2 space-y-2 px-1">
+          {callouts.map((callout, i) => (
+            <div key={i} className="bg-ruhi-warm/40 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
+              {callout}
+            </div>
+          ))}
+          {seedCyclingNote && (
+            <div className="bg-ruhi-sage/20 rounded-xl px-3 py-2 text-xs text-ruhi-deep">
+              🌱 {seedCyclingNote}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -619,95 +681,6 @@ function DrinksSection({ drinks }) {
       </div>
     </section>
   )
-}
-
-function WeekTab({ plan, onOpenRecipe }) {
-  // Build a lookup from id → menu item for fast assignment rendering
-  const itemById = {}
-  ;['breakfasts', 'lunches', 'snacks', 'dinners'].forEach((cat) => {
-    plan.menu[cat]?.forEach((it) => { itemById[it.id] = it })
-  })
-
-  return (
-    <div className="w-full space-y-3 screen-enter">
-      {plan.days.map((day) => {
-        const assignment = plan.assignments?.find((a) => a.date === day.date)
-        const meals = assignment ? [
-          { label: 'B', item: itemById[assignment.breakfastId] },
-          { label: 'L', item: itemById[assignment.lunchId] },
-          assignment.snackId && { label: 'S', item: itemById[assignment.snackId] },
-          { label: 'D', item: itemById[assignment.dinnerId] },
-        ].filter(Boolean) : []
-        const totals = sumDailyMacros(meals.map(m => m.item))
-        return (
-          <div key={day.date} className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="font-display text-lg text-ruhi-deep">{day.dayLabel}</p>
-                <p className="text-xs text-ruhi-earth">{formatDate(day.date)}</p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${PHASE_DOT_BG[day.phase]}`} />
-                <span className="text-xs text-ruhi-earth">{PHASE_LABEL[day.phase]} · day {day.cycleDay}</span>
-              </div>
-            </div>
-            {assignment && (
-              <div className="space-y-1 text-sm">
-                {meals.map(({ label, item }) => (
-                  <DayMeal key={label} label={label} item={item} onOpenRecipe={onOpenRecipe} />
-                ))}
-              </div>
-            )}
-            {totals && (
-              <div className="mt-3 pt-2 border-t border-ruhi-earth/10 flex justify-between text-[11px] text-ruhi-earth">
-                <span>Daily total</span>
-                <span>
-                  ~{totals.calories} cal · <strong className="text-ruhi-deep">{totals.protein}g protein</strong>{totals.carbs > 0 ? ` · ${totals.carbs}g carbs` : ''}
-                </span>
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function DayMeal({ label, item, onOpenRecipe }) {
-  if (!item) return null
-  return (
-    <button
-      onClick={() => onOpenRecipe?.(item)}
-      className="flex items-baseline gap-2 w-full text-left rounded px-1 py-0.5
-                 hover:bg-white/60 transition-colors"
-      aria-label={`Open recipe for ${item.title}`}
-    >
-      <span className="w-5 flex-shrink-0 text-[10px] uppercase tracking-wide text-ruhi-earth">{label}</span>
-      <span className="text-ruhi-deep flex-1">{item.title}</span>
-    </button>
-  )
-}
-
-// Parse free-text macros / calories strings from a menu item and sum them
-// across the day's assigned meals. Returns null if no items contribute.
-function sumDailyMacros(items) {
-  let p = 0, c = 0, f = 0, cal = 0, found = false
-  for (const it of items) {
-    if (!it) continue
-    const macros = it.macros || ''
-    const calStr = it.calories || ''
-    const pm = macros.match(/(\d+)\s*g\s*protein/i)
-    const cm = macros.match(/(\d+)\s*g\s*carbs/i)
-    const fm = macros.match(/(\d+)\s*g\s*fat/i)
-    const calm = calStr.match(/~?\s*(\d+)/)
-    if (pm || cm || fm || calm) found = true
-    if (pm) p += parseInt(pm[1], 10)
-    if (cm) c += parseInt(cm[1], 10)
-    if (fm) f += parseInt(fm[1], 10)
-    if (calm) cal += parseInt(calm[1], 10)
-  }
-  if (!found) return null
-  return { protein: p, carbs: c, fat: f, calories: cal }
 }
 
 function ShoppingTab({ shoppingList }) {
