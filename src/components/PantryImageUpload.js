@@ -2,13 +2,21 @@
 
 import { useRef, useState } from 'react'
 
+// Capped at 5 photos per upload — covers fridge-from-multiple-angles +
+// pantry shelf without runaway token cost. Server enforces the same cap.
+const MAX_IMAGES = 5
+const MAX_FILE_SIZE = 5 * 1024 * 1024  // 5MB raw per image
+
 /**
  * Camera/photo button that:
- *   1. opens the file picker (mobile auto-uses camera with capture="environment")
- *   2. encodes the chosen image to base64
- *   3. POSTs to /api/parse-pantry-image
- *   4. shows a confirm sheet with the parsed ingredients as removable chips
- *   5. on confirm, calls onConfirm(items: string[]) — the parent merges into pantry
+ *   1. opens the file picker (mobile uses camera with capture="environment";
+ *      `multiple` lets the user pick up to MAX_IMAGES photos at once)
+ *   2. encodes each chosen image to base64 in parallel
+ *   3. POSTs the array to /api/parse-pantry-image (single multimodal call —
+ *      the model dedupes across all photos)
+ *   4. shows a confirm sheet with parsed ingredients as removable chips +
+ *      a thumbnail strip of every photo it considered
+ *   5. on confirm, calls onConfirm(items: string[]) — parent merges into pantry
  *
  * Used in three places (per PR #16 spec):
  *   - EditPantry (NavMenu → Pantry)
@@ -25,46 +33,66 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
   const [items, setItems] = useState([])
   const [note, setNote] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState(null)
+  const [previews, setPreviews] = useState([]) // [{ url, name }]
 
   function reset() {
     setStage('idle')
     setItems([])
     setNote(null)
     setErrorMsg(null)
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-      setPreviewUrl(null)
-    }
+    // Revoke every object URL we created so we don't leak memory across
+    // multiple uploads in the same session.
+    previews.forEach((p) => URL.revokeObjectURL(p.url))
+    setPreviews([])
     if (fileRef.current) fileRef.current.value = ''
   }
 
   async function handleFile(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('That doesn\'t look like an image. Try a JPG or PNG.')
-      setStage('error')
-      return
-    }
-    // Quick client-side size guard — server caps too, but failing fast is nicer
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('Image is too large (over 5MB). Try a smaller photo.')
+    const fileList = Array.from(e.target.files || [])
+    if (fileList.length === 0) return
+
+    if (fileList.length > MAX_IMAGES) {
+      setErrorMsg(`Pick up to ${MAX_IMAGES} photos at a time.`)
       setStage('error')
       return
     }
 
-    const localPreview = URL.createObjectURL(file)
-    setPreviewUrl(localPreview)
+    // Validate types + sizes up front before we burn time on base64 encoding.
+    for (const f of fileList) {
+      if (!f.type.startsWith('image/')) {
+        setErrorMsg(`"${f.name}" isn't an image. Try JPGs or PNGs.`)
+        setStage('error')
+        return
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        setErrorMsg(`"${f.name}" is over 5MB. Try a smaller photo.`)
+        setStage('error')
+        return
+      }
+    }
+
+    // Build local previews first so the UI shows thumbnails during the call.
+    const localPreviews = fileList.map((f) => ({
+      url: URL.createObjectURL(f),
+      name: f.name,
+    }))
+    setPreviews(localPreviews)
     setStage('parsing')
     setErrorMsg(null)
 
     try {
-      const base64 = await fileToBase64(file)
+      // Encode all images in parallel — fastest path for multi-image upload.
+      const encoded = await Promise.all(
+        fileList.map(async (f) => ({
+          base64: await fileToBase64(f),
+          mediaType: f.type,
+        }))
+      )
+
       const res = await fetch('/api/parse-pantry-image', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
+        body: JSON.stringify({ images: encoded }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -77,7 +105,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
       setStage('review')
     } catch (err) {
       console.warn('parse-pantry-image failed:', err)
-      setErrorMsg(err.message || 'Couldn\'t read that photo. Try again or add items by hand.')
+      setErrorMsg(err.message || 'Couldn\'t read your photos. Try again or add items by hand.')
       setStage('error')
     }
   }
@@ -91,6 +119,8 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
     reset()
   }
 
+  const photoCount = previews.length
+
   return (
     <>
       <input
@@ -98,6 +128,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
         type="file"
         accept="image/*"
         capture="environment"
+        multiple
         onChange={handleFile}
         className="sr-only"
         aria-hidden="true"
@@ -106,7 +137,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
-        aria-label="Add pantry items from a photo"
+        aria-label={`Add pantry items from up to ${MAX_IMAGES} photos`}
         className={
           compact
             ? `inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full
@@ -118,7 +149,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
         }
       >
         <CameraIcon />
-        {compact ? 'Photo' : 'Add from photo'}
+        {compact ? 'Photo' : 'Add from photos'}
       </button>
 
       {stage !== 'idle' && (
@@ -135,7 +166,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
           >
             <div className="px-5 pt-5 pb-3 flex items-center justify-between">
               <h2 className="text-base text-ruhi-deep font-medium">
-                {stage === 'parsing' && 'Reading your photo...'}
+                {stage === 'parsing' && (photoCount === 1 ? 'Reading your photo...' : `Reading ${photoCount} photos...`)}
                 {stage === 'review' && 'What I see'}
                 {stage === 'error' && 'Hmm.'}
               </h2>
@@ -150,20 +181,35 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
               </button>
             </div>
 
-            {previewUrl && (
+            {previews.length > 0 && (
               <div className="px-5 mb-3">
-                <img
-                  src={previewUrl}
-                  alt="Your pantry photo"
-                  className="w-full max-h-48 object-cover rounded-xl"
-                />
+                {previews.length === 1 ? (
+                  <img
+                    src={previews[0].url}
+                    alt="Your pantry photo"
+                    className="w-full max-h-48 object-cover rounded-xl"
+                  />
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {previews.map((p, i) => (
+                      <img
+                        key={p.url}
+                        src={p.url}
+                        alt={`Photo ${i + 1}`}
+                        className="w-20 h-20 object-cover rounded-lg flex-shrink-0 border border-white/60"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {stage === 'parsing' && (
               <div className="px-5 pb-6 flex flex-col items-center gap-3" role="status" aria-live="polite">
                 <div aria-hidden="true" className="w-8 h-8 border-[3px] border-ruhi-warm border-t-ruhi-deep rounded-full animate-spin" />
-                <p className="text-sm text-ruhi-earth animate-pulse">Identifying ingredients...</p>
+                <p className="text-sm text-ruhi-earth animate-pulse">
+                  Identifying ingredients{photoCount > 1 ? ' across all photos' : ''}...
+                </p>
               </div>
             )}
 
@@ -176,12 +222,16 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
                 )}
                 {items.length === 0 ? (
                   <p className="text-sm text-ruhi-earth mb-4">
-                    I couldn't identify food in that photo. Try a closer shot
-                    or better lighting, or add items by hand instead.
+                    I couldn&apos;t identify food in {photoCount === 1 ? 'that photo' : 'those photos'}. Try a closer
+                    shot or better lighting, or add items by hand instead.
                   </p>
                 ) : (
                   <>
                     <p className="text-xs text-ruhi-earth mb-2">
+                      {photoCount > 1 && (
+                        <>Pulled <strong className="text-ruhi-deep">{items.length}</strong> items from{' '}
+                        <strong className="text-ruhi-deep">{photoCount}</strong> photos.{' '}</>
+                      )}
                       Tap × to remove anything I got wrong, then add to your pantry.
                     </p>
                     <div className="flex flex-wrap gap-2 mb-4">

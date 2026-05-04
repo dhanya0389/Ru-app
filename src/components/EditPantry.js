@@ -32,6 +32,11 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
   const [saving, setSaving] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  // Which bucket is currently in edit mode (× buttons visible on its items).
+  // Only one bucket edits at a time — cleaner than a global toggle, plus less
+  // accidental removal. Click the same bucket's pencil to exit, or another
+  // bucket's pencil to switch.
+  const [editingBucket, setEditingBucket] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -170,36 +175,56 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
           <div className="space-y-3">
             {grouped.map(({ bucket, label, chips: bucketChips }) => {
               const style = BUCKET_STYLES[bucket] || BUCKET_STYLES.other
+              const isEditing = editingBucket === bucket
               return (
                 <section
                   key={bucket}
                   className={`rounded-2xl border ${style.sectionBg} ${style.sectionBorder} px-4 py-3.5`}
                 >
-                  <header className="flex items-center justify-between mb-2.5">
+                  <header className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
                       <h3 className="text-sm text-ruhi-deep font-medium">{label}</h3>
+                      <span className="text-[11px] text-ruhi-earth/60 tabular-nums">
+                        ({bucketChips.length})
+                      </span>
                     </div>
-                    <span className="text-[11px] text-ruhi-earth/70 tabular-nums">
-                      {bucketChips.length}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBucket(isEditing ? null : bucket)}
+                      aria-label={isEditing ? `Done editing ${label}` : `Edit ${label}`}
+                      aria-pressed={isEditing}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors
+                                  ${isEditing
+                                    ? 'bg-ruhi-deep text-ruhi-cream'
+                                    : 'text-ruhi-earth hover:bg-white/60 hover:text-ruhi-deep'}`}
+                    >
+                      {isEditing ? <CheckIcon /> : <PencilIcon />}
+                    </button>
                   </header>
-                  <div className="flex flex-wrap gap-1.5">
+                  <ul className="space-y-0.5">
                     {bucketChips.map((item, idx) => (
-                      <button
+                      <li
                         key={`${item}-${idx}`}
-                        type="button"
-                        onClick={() => removeChip(item)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-                                   bg-white/85 border ${style.chipBorder} ${style.chipHover}
-                                   text-sm text-ruhi-deep transition-colors`}
-                        aria-label={`Remove ${item}`}
+                        className="flex items-center gap-2 py-1 px-1.5 rounded-md group"
                       >
-                        <span>{item}</span>
-                        <span aria-hidden="true" className="text-ruhi-earth/60 leading-none">×</span>
-                      </button>
+                        <span aria-hidden="true" className={`w-1 h-1 rounded-full ${style.dot} flex-shrink-0`} />
+                        <span className="flex-1 text-sm text-ruhi-deep">{item}</span>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => removeChip(item)}
+                            aria-label={`Remove ${item}`}
+                            className="w-6 h-6 rounded-full text-ruhi-earth hover:bg-ruhi-rose/30
+                                       hover:text-ruhi-deep transition-colors flex items-center
+                                       justify-center text-base leading-none"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </section>
               )
             })}
@@ -243,5 +268,42 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
         </button>
       </div>
     </div>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="5 12 10 17 19 7" />
+    </svg>
   )
 }
