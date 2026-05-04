@@ -82,20 +82,40 @@ YOUR JOB:
    - STORAGE (which container, fridge vs freezer, how many days each lasts, "use first")
 4. Estimate total session time as a single number (~60-120 minutes typical).
 
+CRITICAL — DIET (overrides everything, including pantry):
+- The user's diet setting is the ONLY truth. NEVER mention forbidden ingredients, even in passing.
+- VEGETARIAN: NO meat (beef/pork/chicken/turkey/lamb/etc.), NO fish or seafood. Eggs and dairy OK.
+- VEGAN: NO animal products at all. NO meat/fish/eggs/dairy/honey.
+- PESCATARIAN: NO meat. Fish, eggs, dairy OK.
+- EVERYTHING: no restrictions.
+- If the weekly plan or pantry contains a forbidden ingredient (validator should have caught this earlier, but in case): IGNORE it. Don't mention it in storage steps either.
+
+OUTPUT STRUCTURE — keep each step SCANNABLE:
+- title: 4-7 word imperative ("Roast sweet potato & batch tofu", "Simmer red lentils").
+- temp (when active heat applies): "400°F" / "medium-high" / "low simmer" / null otherwise.
+- portions: 1-5 short bullets in the form "QUANTITY INGREDIENT" — e.g. ["370g sweet potato", "1 tsp olive oil", "220g extra-firm tofu"]. Pull these out of prose.
+- coversDishes: 1 short comma-separated string naming WHICH DISHES this step serves — e.g. "Mon/Wed dinner + Tue/Sat lunch + Thu breakfast hash". Use day abbreviations.
+- steps: 2-5 short imperative bullets, one action each. NOT a paragraph. Each bullet ≤ 12 words.
+
+Example of GOOD active step:
+  title: "Roast sweet potato & batch tofu"
+  temp: "400°F"
+  minutes: 25
+  parallel: false
+  portions: ["370g sweet potato (1cm cubes)", "1 tsp olive oil", "½ tsp turmeric", "220g extra-firm tofu, sliced"]
+  coversDishes: "Mon/Wed/Sat dinner + Thu breakfast hash"
+  steps: ["Toss sweet potato with oil + turmeric.", "Spread on tray 1, roast 25 min, flip halfway.", "Press tofu 5 min, slice 1cm thick.", "Place on tray 2 same oven."]
+
+Example of BAD active step (too prose-y, hard to scan — DON'T DO THIS):
+  title: "Roast sweet potato & bake tofu simultaneously"
+  detail: "Dice 370g sweet potato (covers Mon/Wed dinner + Tue/Sat dinner + Thu/Sat breakfast hash). Toss with 1 tsp olive oil, ½ teaspoon turmeric. Spread on a sheet tray and roast 25 minutes, flipping halfway. While that goes, press 220g of tofu for 5 minutes between paper towels..."
+
 WRITING RULES:
-- Direct, warm, embodied — first person where natural ("I'd start with...").
+- Direct, warm, embodied — first person where natural in tips/notes only.
 - No practitioner name-drops.
 - No "scientifically proven" / "clinically proven".
-- Step text should be specific: portions, temps, times. "Roast chicken 25 min at 400°F" not "cook chicken until done".
-- When a step covers multiple recipes, name them: "Cook 600g chicken (covers Mon/Wed dinner + Tue lunch)".
-- Storage notes should be specific: "Fridge in glass container — eat by Wed" not "Store in fridge".
-
-WHAT YOU HAVE:
-- The full weekly plan (dishes + days each is used)
-- The user's pantry (existing items)
-- The user's cycle phase progression (so you can flag any time-sensitive items, e.g. "make this fresh Friday — luteal needs warm food")
-
-Build the prep timeline as a SINGLE sequence the user can execute Sunday afternoon (or whatever day they prep). Group steps into ACTIVE / BETWEEN / ASSEMBLY / STORAGE sections.
+- Storage 'lasts' should be specific — "4 days fridge / 2 months freezer".
+- Storage 'useBy' should reference a day or dish — "Use in Mon/Tue dinners first" not "use soon".
 
 Return via the return_prep_plan tool.`
 
@@ -131,45 +151,52 @@ Build the prep plan. Group steps into ACTIVE / BETWEEN / ASSEMBLY / STORAGE. Ide
       },
       active: {
         type: 'array',
-        description: 'Active cooking steps in execution order. Each step happens with heat or attention; multiple steps can run in parallel and that should be noted in the step text.',
+        description: 'Active cooking steps in execution order. Each step happens with heat or attention; multiple steps can run in parallel.',
         items: {
           type: 'object',
           properties: {
-            order:    { type: 'number', description: 'Step number (1-based).' },
-            minutes:  { type: 'number', description: 'Active or elapsed minutes for this step.' },
-            title:    { type: 'string', description: 'Short imperative title — "Roast chicken thighs"' },
-            detail:   { type: 'string', description: 'Specific instructions — temp/time/portion. Reference which dishes this serves.' },
-            parallel: { type: 'boolean', description: 'True if this step runs in parallel with the previous step (do not block on it).' },
+            order:         { type: 'number', description: 'Step number (1-based).' },
+            minutes:       { type: 'number', description: 'Active or elapsed minutes for this step.' },
+            title:         { type: 'string', description: '4-7 word imperative title — "Roast sweet potato & batch tofu"' },
+            temp:          { type: ['string', 'null'], description: 'Cooking temperature/heat level when applicable — "400°F" / "medium-high" / "low simmer". Null if no heat (e.g., rinsing, prepping).' },
+            portions:      { type: 'array', items: { type: 'string' }, description: '1-5 short bullets in the form "QUANTITY INGREDIENT". Pull from prose.', minItems: 1, maxItems: 6 },
+            coversDishes:  { type: 'string', description: 'Which dishes this step serves — "Mon/Wed dinner + Tue lunch + Thu breakfast hash"' },
+            steps:         { type: 'array', items: { type: 'string' }, description: '2-5 short imperative bullets, ≤12 words each. NOT a paragraph.', minItems: 2, maxItems: 6 },
+            parallel:      { type: 'boolean', description: 'True if this step runs in parallel with the previous step.' },
           },
-          required: ['order', 'minutes', 'title', 'detail', 'parallel'],
+          required: ['order', 'minutes', 'title', 'temp', 'portions', 'coversDishes', 'steps', 'parallel'],
         },
         minItems: 2,
         maxItems: 8,
       },
       between: {
         type: 'array',
-        description: 'Tasks done while active cooking happens — chopping, washing, mixing dressings. Filler that fits into the gaps.',
+        description: 'Tasks done while active cooking happens — chopping, washing, mixing dressings.',
         items: {
           type: 'object',
           properties: {
-            title:  { type: 'string' },
-            detail: { type: 'string', description: 'What to do, with portions and any storage notes.' },
+            title:        { type: 'string', description: '3-6 word imperative — "Whisk lemon-tahini dressing"' },
+            portions:     { type: 'array', items: { type: 'string' }, description: '1-4 short "QUANTITY INGREDIENT" bullets', minItems: 0, maxItems: 5 },
+            coversDishes: { type: ['string', 'null'], description: 'Which dishes this prep serves, or null if it\'s general prep.' },
+            steps:        { type: 'array', items: { type: 'string' }, description: '1-3 short imperative bullets', minItems: 1, maxItems: 4 },
           },
-          required: ['title', 'detail'],
+          required: ['title', 'portions', 'coversDishes', 'steps'],
         },
         minItems: 0,
         maxItems: 6,
       },
       assembly: {
         type: 'array',
-        description: 'Cold assembly done at the end — snack jars, salad bases, dressings into containers.',
+        description: 'Cold assembly at the end — snack jars, salad bases, dressings into containers.',
         items: {
           type: 'object',
           properties: {
-            title:  { type: 'string' },
-            detail: { type: 'string' },
+            title:        { type: 'string', description: '3-6 word imperative — "Pack snack jars"' },
+            portions:     { type: 'array', items: { type: 'string' }, minItems: 0, maxItems: 5 },
+            coversDishes: { type: ['string', 'null'] },
+            steps:        { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 4 },
           },
-          required: ['title', 'detail'],
+          required: ['title', 'portions', 'coversDishes', 'steps'],
         },
         minItems: 0,
         maxItems: 6,

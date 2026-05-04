@@ -156,28 +156,28 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           label="Active cooking"
           subtitle="Heat is on. Run things in parallel where you can."
         >
-          <ol className="space-y-3">
+          <ol className="space-y-4">
             {prep.active.map((step) => (
-              <li key={step.order} className="flex gap-3">
-                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-ruhi-terracotta/15 border border-ruhi-terracotta/40 text-ruhi-deep text-xs font-medium flex items-center justify-center">
-                  {step.order}
-                </span>
-                <div className="flex-1">
-                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                    <h4 className="text-sm font-medium text-ruhi-deep">
-                      {step.title}
-                      {step.parallel && (
-                        <span className="ml-2 text-[10px] uppercase tracking-wide text-ruhi-terracotta">
-                          ↺ in parallel
-                        </span>
-                      )}
-                    </h4>
-                    <span className="flex-shrink-0 text-[11px] text-ruhi-earth tabular-nums">
-                      {step.minutes} min
+              <li key={step.order}>
+                <StepCard
+                  numberBadge={
+                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-ruhi-terracotta/15 border border-ruhi-terracotta/40 text-ruhi-deep text-xs font-medium flex items-center justify-center">
+                      {step.order}
                     </span>
-                  </div>
-                  <p className="text-xs text-ruhi-earth leading-relaxed">{step.detail}</p>
-                </div>
+                  }
+                  title={step.title}
+                  rightMeta={
+                    <span className="flex items-center gap-1.5 text-[11px] text-ruhi-earth tabular-nums">
+                      {step.temp && <Tag>{step.temp}</Tag>}
+                      <span>{step.minutes} min</span>
+                    </span>
+                  }
+                  parallelBadge={step.parallel}
+                  portions={step.portions}
+                  coversDishes={step.coversDishes}
+                  steps={step.steps}
+                  accentColor="ruhi-terracotta"
+                />
               </li>
             ))}
           </ol>
@@ -190,14 +190,19 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           label="Between cooking"
           subtitle="Fill the gaps while the heat is doing its work."
         >
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {prep.between.map((task, i) => (
-              <li key={i} className="flex gap-3">
-                <span aria-hidden="true" className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-ruhi-sage mt-2" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-ruhi-deep mb-0.5">{task.title}</h4>
-                  <p className="text-xs text-ruhi-earth leading-relaxed">{task.detail}</p>
-                </div>
+              <li key={i}>
+                <StepCard
+                  numberBadge={
+                    <span aria-hidden="true" className="flex-shrink-0 w-2 h-2 rounded-full bg-ruhi-sage mt-2" />
+                  }
+                  title={task.title}
+                  portions={task.portions}
+                  coversDishes={task.coversDishes}
+                  steps={task.steps}
+                  accentColor="ruhi-sage"
+                />
               </li>
             ))}
           </ul>
@@ -210,14 +215,19 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           label="Assembly"
           subtitle="Cold steps at the end — jars, salads, dressings."
         >
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {prep.assembly.map((task, i) => (
-              <li key={i} className="flex gap-3">
-                <span aria-hidden="true" className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-ruhi-peach mt-2" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-ruhi-deep mb-0.5">{task.title}</h4>
-                  <p className="text-xs text-ruhi-earth leading-relaxed">{task.detail}</p>
-                </div>
+              <li key={i}>
+                <StepCard
+                  numberBadge={
+                    <span aria-hidden="true" className="flex-shrink-0 w-2 h-2 rounded-full bg-ruhi-peach mt-2" />
+                  }
+                  title={task.title}
+                  portions={task.portions}
+                  coversDishes={task.coversDishes}
+                  steps={task.steps}
+                  accentColor="ruhi-peach"
+                />
               </li>
             ))}
           </ul>
@@ -282,6 +292,69 @@ function Section({ dotClass, label, subtitle, children }) {
       {subtitle && <p className="text-xs text-ruhi-earth/80 mb-3 px-1">{subtitle}</p>}
       {children}
     </section>
+  )
+}
+
+// Unified step card used by Active / Between / Assembly. Renders title +
+// optional meta (time, temp) + portions chips + coversDishes line + a
+// short numbered/bulleted step list. Replaces the previous prose `detail`
+// field with a scannable layout.
+function StepCard({ numberBadge, title, rightMeta, parallelBadge, portions, coversDishes, steps, accentColor = 'ruhi-earth' }) {
+  return (
+    <div className="flex gap-3">
+      {numberBadge}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h4 className="text-sm font-medium text-ruhi-deep leading-tight">
+            {title}
+            {parallelBadge && (
+              <span className="ml-2 inline-flex items-center text-[10px] uppercase tracking-wide text-ruhi-terracotta whitespace-nowrap">
+                ↺ in parallel
+              </span>
+            )}
+          </h4>
+          {rightMeta && <div className="flex-shrink-0">{rightMeta}</div>}
+        </div>
+
+        {coversDishes && (
+          <p className="text-[11px] text-ruhi-earth/80 italic mb-2">
+            <span className="not-italic text-ruhi-earth/70">covers:</span> {coversDishes}
+          </p>
+        )}
+
+        {portions?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {portions.map((p, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/70 border border-ruhi-earth/20 text-[11px] text-ruhi-deep tabular-nums"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {steps?.length > 0 && (
+          <ul className="space-y-1">
+            {steps.map((s, i) => (
+              <li key={i} className="flex items-start gap-1.5 text-xs text-ruhi-earth leading-snug">
+                <span aria-hidden="true" className="text-ruhi-earth/50 flex-shrink-0 mt-0.5">→</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Tag({ children }) {
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-ruhi-warm/60 text-ruhi-deep tabular-nums">
+      {children}
+    </span>
   )
 }
 
