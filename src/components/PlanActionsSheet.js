@@ -21,8 +21,9 @@ import { printPlan, emailPlan, sharePlan } from '@/lib/exportPlan'
  *   onClose       — () => void
  *   plan          — current WeeklyPlan
  *   onRegenerate  — () => void, called when user picks Regenerate
+ *   onOpenPrep    — () => void, called when user picks Plan Sunday prep
  */
-export default function PlanActionsSheet({ open, onClose, plan, onRegenerate }) {
+export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, onOpenPrep }) {
   const sheetRef = useRef(null)
   const [shareSupported, setShareSupported] = useState(false)
   const [shareError, setShareError] = useState(null)
@@ -88,6 +89,11 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate }) 
     onRegenerate?.()
   }
 
+  function handleOpenPrep() {
+    onClose()
+    onOpenPrep?.()
+  }
+
   return (
     <div
       data-no-print
@@ -151,7 +157,19 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate }) 
           )}
         </div>
 
-        <div className="px-5 pt-4 pb-5">
+        <div className="px-5 pt-4 pb-3">
+          <h3 className="text-[10px] uppercase tracking-widest text-ruhi-earth mb-2">
+            Prep
+          </h3>
+          <ActionRow
+            icon={<ChefIcon />}
+            label="Plan Sunday prep"
+            hint="AI batches across this week's menu — what to cook in parallel, how to store, when to use what."
+            onClick={handleOpenPrep}
+          />
+        </div>
+
+        <div className="px-5 pt-2 pb-5">
           <h3 className="text-[10px] uppercase tracking-widest text-ruhi-earth mb-2">
             Plan
           </h3>
@@ -216,6 +234,16 @@ function ShareIcon() {
       <circle cx="18" cy="19" r="3" />
       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
       <line x1="15.41" y1="6.51" x2="8.59" y2="11.49" />
+    </svg>
+  )
+}
+
+function ChefIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 14h12v6a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-6z" />
+      <path d="M8 14V9.5a4 4 0 0 1 .5-2A3 3 0 0 1 12 4a3 3 0 0 1 3.5 3.5A4 4 0 0 1 16 9.5V14" />
+      <path d="M5 14h14" />
     </svg>
   )
 }

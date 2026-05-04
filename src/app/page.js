@@ -12,6 +12,7 @@ import WeeklyMode from '@/components/WeeklyMode'
 import Sources from '@/components/Sources'
 import EditPantry from '@/components/EditPantry'
 import JournalScreen from '@/components/JournalScreen'
+import PrepPlanScreen from '@/components/PrepPlanScreen'
 
 // ISO date (YYYY-MM-DD) for "today" in local time.
 // Used to decide whether a saved weekly plan is still current.
@@ -77,6 +78,11 @@ export default function Home() {
     if (target === 'journal') {
       setSourcesReturnTo(screen === 'weekly' ? 'weekly' : 'checkin')
       setScreen('journal')
+      return
+    }
+    if (target === 'prep') {
+      // Prep is only reachable from Weekly Mode, so always return there.
+      setScreen('prep')
       return
     }
     if (target === 'welcome') {
@@ -206,6 +212,17 @@ export default function Home() {
     return (
       <JournalScreen
         onBack={() => setScreen(sourcesReturnTo)}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        onNavigate={goTo}
+      />
+    )
+  }
+
+  if (screen === 'prep') {
+    return (
+      <PrepPlanScreen
+        onBack={() => setScreen('weekly')}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
         onNavigate={goTo}

@@ -421,6 +421,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
         onClose={() => setActionsOpen(false)}
         plan={plan}
         onRegenerate={() => { clearWeeklyPlan(); setPlan(null); }}
+        onOpenPrep={() => onNavigate?.('prep')}
       />
     </div>
   )
