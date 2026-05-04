@@ -39,7 +39,19 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
       return
     }
     setPlan(wp)
-    generate(wp)
+    // Read the time picker value the user selected in PlanActionsSheet.
+    // Read-once + clear so a stale value doesn't get reused if the user
+    // opens the prep page another way later.
+    let availableMinutes = null
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('ruhi_prep_minutes')
+      if (raw) {
+        const parsed = parseInt(raw, 10)
+        if (Number.isFinite(parsed)) availableMinutes = parsed
+        localStorage.removeItem('ruhi_prep_minutes')
+      }
+    }
+    generate(wp, availableMinutes)
   }, [])
 
   // Rotate tips while generating — same UX rhythm as Weekly Mode's noPlan
@@ -52,7 +64,7 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
     return () => clearInterval(id)
   }, [loading])
 
-  async function generate(wp) {
+  async function generate(wp, availableMinutes = null) {
     setLoading(true)
     setError(null)
     setTipIndex(0)
@@ -64,6 +76,12 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           plan: wp,
           profile: getProfile(),
           pantry: getPantry(),
+          // Energy comes from the saved plan (set when the user planned the
+          // week). The API also defaults gracefully if missing.
+          energy: typeof wp?.energy === 'number' ? wp.energy : 3,
+          // availableMinutes: user's time picker selection. API defaults by
+          // energy if not provided.
+          availableMinutes,
         }),
       })
       if (!res.ok) {

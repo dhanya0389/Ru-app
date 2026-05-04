@@ -434,10 +434,18 @@ function ExpandedMealCard({ meal, onSurprise, onShowSources }) {
       <h2 className="font-display text-2xl text-ruhi-deep mb-2">{meal.title}</h2>
       <div className="flex gap-3 text-sm text-ruhi-earth mb-2">
         <span>{meal.cookTime}</span>
-        <span aria-hidden="true">·</span>
-        <span>{meal.calories}</span>
+        {meal.calories && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span>{meal.calories}</span>
+          </>
+        )}
       </div>
-      <p className="text-sm text-ruhi-earth mb-3">{meal.macros}</p>
+      {meal.macros ? (
+        <p className="text-sm text-ruhi-earth mb-3">{meal.macros}</p>
+      ) : (
+        <p className="text-xs text-ruhi-earth/60 italic mb-3">Macros pending — USDA couldn&apos;t verify nutrition for these ingredients.</p>
+      )}
 
       <div className="mb-6">
         <WhyThis practitioners={meal.practitioners} onShowSources={onShowSources} />

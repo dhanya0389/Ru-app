@@ -23,10 +23,26 @@ import { printPlan, emailPlan, sharePlan } from '@/lib/exportPlan'
  *   onRegenerate  — () => void, called when user picks Regenerate
  *   onOpenPrep    — () => void, called when user picks Plan Sunday prep
  */
+// Time picker pill options for the prep planner. Defaults are chosen by the
+// user's saved energy (low → 30, steady → 60, high → 90). User can override
+// any pill — energy is a hint, time is the binding constraint.
+const PREP_TIME_OPTIONS = [30, 45, 60, 90, 120]
+function defaultPrepTimeFor(energy) {
+  if (typeof energy !== 'number') return 60
+  if (energy <= 2) return 30
+  if (energy === 3) return 60
+  return 90
+}
+
 export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, onOpenPrep }) {
   const sheetRef = useRef(null)
   const [shareSupported, setShareSupported] = useState(false)
   const [shareError, setShareError] = useState(null)
+  // Prep section expansion + selected time. When expanded, the row swaps
+  // from a single tap-to-navigate button into a small inline panel with
+  // time pills + continue button. NOT a popup — popups can be blocked.
+  const [prepExpanded, setPrepExpanded] = useState(false)
+  const [prepMinutes, setPrepMinutes] = useState(() => defaultPrepTimeFor(plan?.energy))
 
   // Feature-detect navigator.share on mount (client-only).
   useEffect(() => {
@@ -56,10 +72,16 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
     }
   }, [open, onClose])
 
-  // Reset transient state on open.
+  // Reset transient state on open. Default the time picker to whatever
+  // matches the user's saved energy each time the sheet reopens — they
+  // may have re-planned the week with different energy since last open.
   useEffect(() => {
-    if (open) setShareError(null)
-  }, [open])
+    if (open) {
+      setShareError(null)
+      setPrepExpanded(false)
+      setPrepMinutes(defaultPrepTimeFor(plan?.energy))
+    }
+  }, [open, plan?.energy])
 
   if (!open) return null
 
@@ -89,7 +111,21 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
     onRegenerate?.()
   }
 
-  function handleOpenPrep() {
+  function handlePrepRowClick() {
+    // First tap expands the row (shows time picker). Second tap on the same
+    // row collapses. The Continue button below confirms + navigates.
+    setPrepExpanded((v) => !v)
+  }
+
+  function handleContinueToPrep() {
+    // Stash the selected time where PrepPlanScreen can read it on mount.
+    // We use localStorage instead of routing it through page.js because
+    // navigation goes via onNavigate('prep') which doesn't carry props,
+    // and adding a query-string param means a heavier router refactor.
+    // The key is read-once and cleared by PrepPlanScreen so no stale value.
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ruhi_prep_minutes', String(prepMinutes))
+    }
     onClose()
     onOpenPrep?.()
   }
@@ -165,8 +201,47 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
             icon={<ChefIcon />}
             label="Plan Sunday prep"
             hint="AI batches across this week's menu — what to cook in parallel, how to store, when to use what."
-            onClick={handleOpenPrep}
+            onClick={handlePrepRowClick}
+            trailing={<Chevron expanded={prepExpanded} />}
           />
+          {prepExpanded && (
+            <div className="mt-2 px-3 py-3 rounded-xl bg-ruhi-warm/30 border border-ruhi-warm screen-enter">
+              <p className="text-xs text-ruhi-deep font-medium mb-2">
+                How much time do you have today?
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-3" role="radiogroup" aria-label="Available prep time">
+                {PREP_TIME_OPTIONS.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="radio"
+                    aria-checked={prepMinutes === m}
+                    onClick={() => setPrepMinutes(m)}
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all
+                      ${prepMinutes === m
+                        ? 'bg-ruhi-deep text-ruhi-cream shadow-sm'
+                        : 'bg-white/80 border border-ruhi-earth/30 text-ruhi-deep hover:bg-white'}`}
+                  >
+                    {m} min
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-ruhi-earth/80 mb-3 leading-snug">
+                {plan?.energy != null && (
+                  <>Default for energy {plan.energy}: {defaultPrepTimeFor(plan.energy)} min. </>
+                )}
+                Tap a different pill if today&apos;s time differs.
+              </p>
+              <button
+                type="button"
+                onClick={handleContinueToPrep}
+                className="w-full py-2.5 rounded-full bg-ruhi-deep text-ruhi-cream text-sm
+                           hover:bg-ruhi-earth transition-all shadow-sm"
+              >
+                Continue to prep →
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="px-5 pt-2 pb-5">
@@ -186,7 +261,7 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
   )
 }
 
-function ActionRow({ icon, label, hint, onClick, destructive = false }) {
+function ActionRow({ icon, label, hint, onClick, destructive = false, trailing = null }) {
   return (
     <button
       type="button"
@@ -203,7 +278,27 @@ function ActionRow({ icon, label, hint, onClick, destructive = false }) {
         <span className={`block text-sm font-medium ${destructive ? 'text-ruhi-earth' : 'text-ruhi-deep'}`}>{label}</span>
         {hint && <span className="block text-[11px] text-ruhi-earth/80 mt-0.5 leading-snug">{hint}</span>}
       </span>
+      {trailing && <span className="flex-shrink-0 mt-0.5">{trailing}</span>}
     </button>
+  )
+}
+
+function Chevron({ expanded }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`text-ruhi-earth/70 transition-transform ${expanded ? 'rotate-180' : ''}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   )
 }
 

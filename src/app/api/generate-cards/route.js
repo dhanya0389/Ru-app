@@ -227,6 +227,14 @@ Use the return_cards tool to deliver your three cards.`
         cards.meal.macros = formatMacros(calculated)
         cards.meal.calories = formatCalories(calculated)
         cards.meal.macrosSource = 'usda'
+      } else {
+        // USDA couldn't price the meal — hide macros instead of falling
+        // back to Haiku's guess. Trust call: misleading numbers labeled
+        // "EST" worse than no number. Display layer renders 'Macros pending'
+        // when macros is null.
+        cards.meal.macros = null
+        cards.meal.calories = null
+        cards.meal.macrosSource = 'unverified'
       }
     }
 

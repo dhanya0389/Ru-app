@@ -23,10 +23,50 @@ export async function POST(request) {
     return Response.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  const { plan, profile, pantry } = body || {}
+  const { plan, profile, pantry, energy: bodyEnergy, availableMinutes } = body || {}
   if (!plan || !plan.menu || !plan.assignments) {
     return Response.json({ error: 'missing_plan' }, { status: 400 })
   }
+
+  // Energy: prefer explicit body field; fall back to plan's saved energy if
+  // present; default to 3 (steady). Tiers drive both session length and the
+  // complexity rules below.
+  const energy = typeof bodyEnergy === 'number'
+    ? bodyEnergy
+    : (typeof plan?.energy === 'number' ? plan.energy : 3)
+
+  // Available time tier — driven by user's time picker. Default by energy
+  // if not explicitly set: low energy → 30 min, steady → 60, high → 90.
+  // Hard cap at 120 (per Dhanya's call: anything over 120 is unrealistic).
+  const defaultMinutesByEnergy = energy <= 2 ? 30 : energy === 3 ? 60 : 90
+  const sessionCapMinutes = Math.min(120, Math.max(15, Number(availableMinutes) || defaultMinutesByEnergy))
+
+  const energyAndTimeBlock = `
+USER STATE FOR THIS PREP SESSION:
+- Energy: ${energy}/5 (${energy <= 2 ? 'LOW' : energy === 3 ? 'STEADY' : 'HIGH'})
+- Available time: ${sessionCapMinutes} minutes total session
+
+${energy <= 2 ? `LOW-ENERGY HARD RULES (apply to every step):
+- Active hands-on time across the entire session: ≤ ${Math.min(sessionCapMinutes, 30)} minutes. The user is the one chopping/stirring/attending — that's what we cap.
+- ONE-POT / SET-AND-FORGET COOKING IS WELCOME, even if total cook time is long. A 90-minute slow-roast or 60-minute simmered dal that requires only 5 min of hands-on attention is FINE — count it as 5 min hands-on, not 90 min total.
+- NO recipes or steps that require constant attention (stir-frying that needs flipping every minute, multi-step sauces with reductions, simultaneous techniques juggled).
+- Assembly-style steps DOMINATE. Pre-cooked or canned ingredients (canned chickpeas, store-bought rotisserie chicken if applicable, frozen riced cauliflower, jarred sauce) are PREFERRED over from-scratch.
+- If the time budget is ≤ 30 min: NO slow-cook items at all (no time even for set-and-forget). Pure assembly + microwave + maybe one quick stovetop step.
+- If the time budget is ≥ 60 min: one-pot slow-cook items welcome — start them first so they unattend, then assemble around them.
+- TOTAL active steps across the session: cap at 4-5 (not 8). Fewer, bigger batched steps.` : ''}
+
+${energy === 3 ? `STEADY-ENERGY GUIDANCE:
+- Active hands-on time across session: ≤ ${sessionCapMinutes} minutes total.
+- Standard cooking — multi-step techniques OK, parallel cooking welcome.
+- 5-7 active steps typical.` : ''}
+
+${energy >= 4 ? `HIGH-ENERGY GUIDANCE:
+- User has bandwidth for ambitious cooking. Active hands-on can fill the full ${sessionCapMinutes} min.
+- Complex techniques welcome — sauces that need attention, multi-pan choreography.
+- 6-8 active steps OK.` : ''}
+
+The totalMinutes you return MUST be ≤ ${sessionCapMinutes}. If you can't fit the prep within that budget, prep FEWER batched components — drop the lowest-leverage batches and let those dishes get cooked fresh on the day.
+`
 
   // Build a compact dish-by-dish summary the model can reason over without
   // re-deriving everything from raw assignments. Including frequency
@@ -125,6 +165,7 @@ PROFILE:
 - Diet: ${profile?.diet || 'everything'}
 - Carb strictness: ${profile?.carbStrictness || 'gentle'}
 - Cuisines: ${profile?.cuisines?.join(', ') || 'any'}
+${energyAndTimeBlock}
 
 PHASE PROGRESSION:
 ${phaseProgression}
@@ -136,7 +177,7 @@ THIS WEEK'S DISHES + USAGE:
 
 ${dishSummary}
 
-Build the prep plan. Group steps into ACTIVE / BETWEEN / ASSEMBLY / STORAGE. Identify which proteins, grains, sauces should be batched. Use return_prep_plan.`
+Build the prep plan. Group steps into ACTIVE / BETWEEN / ASSEMBLY / STORAGE. Identify which proteins, grains, sauces should be batched. Respect the energy + time constraints above — totalMinutes MUST be ≤ ${sessionCapMinutes}. Use return_prep_plan.`
 
   const prepPlanSchema = {
     type: 'object',

@@ -70,6 +70,15 @@ Hard rules:
 
 Return via the fix_dish tool.`
 
+  // Surface what's wrong in plain language at the top so the model focuses on
+  // the right rules. Calories AND carbs AND protein get equal weight — past
+  // retries skewed toward fixing calories alone and let carb/protein issues
+  // through. Generic "fit the targets" language wasn't urgent enough.
+  const failedRulesSummary = (validation.issues || [])
+    .filter((i) => i.severity === 'severe')
+    .map((i) => `- ${i.rule.toUpperCase()}: ${i.message}`)
+    .join('\n')
+
   const userMessage = `ORIGINAL DISH (failing validation):
 Title: ${dish.title}
 Cook time: ${dish.cookTime || 'unspecified'}
@@ -79,10 +88,17 @@ ${(dish.ingredients || []).map((i) => `  - ${i}`).join('\n')}
 Steps:
 ${(dish.steps || []).map((s, i) => `  ${i + 1}. ${s}`).join('\n')}
 
+❌ FAILED RULES (you MUST fix every one of these — calories, carbs, AND protein get equal weight; do not fix one and leave the others broken):
+${failedRulesSummary}
+
 CONSTRAINTS:
 ${constraints}
 
-Return the corrected dish via fix_dish. Adjust portions until the math fits.`
+To fix calorie OR carb overage: REDUCE PORTIONS. If oats are 80g, drop to 40g. If lentils are 100g cooked, drop to 50g. Don't just rename the dish — reduce gram amounts in the ingredients list. The USDA pipeline will compute the math from your literal ingredient quantities.
+
+To fix protein under-floor: ADD a high-protein anchor with proper portion (200g Greek yogurt, 200g cottage cheese, 150g paneer, 200g tempeh, 250g extra-firm tofu) — not a 50g garnish.
+
+Return the corrected dish via fix_dish.`
 
   try {
     const message = await client.messages.create({
@@ -107,13 +123,23 @@ Return the corrected dish via fix_dish. Adjust portions until the math fits.`
     const corrected = toolUse.input
 
     // Re-run USDA on the new ingredients so the user sees the actual macros
-    // for the corrected portions, not Haiku's guess.
+    // for the corrected portions, not Haiku's guess. If USDA fails for the
+    // entire dish (no ingredients matched, or sanity check tripped), HIDE
+    // the macros entirely instead of falling back to Haiku's guess. Trust
+    // call from Dhanya May 4: showing an arbitrary number labeled "EST" is
+    // worse than showing nothing — the user calibrates their meal off the
+    // displayed number, and a misleading 480 cal claim is a trust break.
     if (corrected.ingredients?.length) {
       const calculated = await calculateMacros(corrected.ingredients)
       if (calculated) {
         corrected.macros = formatMacros(calculated)
         corrected.calories = formatCalories(calculated)
         corrected.macrosSource = 'usda'
+      } else {
+        // USDA couldn't price the dish — hide rather than ship Haiku's guess
+        corrected.macros = null
+        corrected.calories = null
+        corrected.macrosSource = 'unverified'
       }
     }
 
@@ -139,11 +165,15 @@ Return the corrected dish via fix_dish. Adjust portions until the math fits.`
  * severe, run regenerateDish() in parallel and replace them in the array.
  * Returns the (possibly corrected) array + an audit log of what changed.
  *
- * Caps the number of retries to prevent runaway latency / cost when
- * generation is broken in some unforeseen way.
+ * Retry cap removed May 4: previously capped at 3 per category to bound
+ * latency, but this let the 4th-worst dish through unfixed when a category
+ * had ≥4 severe failures. Since retries run in parallel, removing the cap
+ * adds at most ~3-5s in the worst case (one extra concurrent Haiku round-
+ * trip), which is acceptable in exchange for no dish shipping with a known
+ * severe macro violation. Hard upper bound at 8 only as runaway-prevention.
  */
 export async function validateAndRetryAll(client, dishes, mealType, ctx, opts = {}) {
-  const maxRetries = opts.maxRetries ?? 3
+  const maxRetries = opts.maxRetries ?? 8
   const audit = []
   if (!Array.isArray(dishes) || dishes.length === 0) {
     return { dishes, audit }
@@ -166,8 +196,8 @@ export async function validateAndRetryAll(client, dishes, mealType, ctx, opts = 
 
   if (failures.length === 0) return { dishes, audit }
 
-  // Cap retries at maxRetries, prioritize the worst offenders (severe issues
-  // count first, then largest calorie deviation).
+  // Retry every severe failure up to the runaway cap. Sort by calorie delta
+  // so worst offenders go first within the cap (still rare to hit 8).
   const ranked = failures
     .map((f) => {
       const calIssue = f.validation.issues.find((i) => i.rule === 'calories')
