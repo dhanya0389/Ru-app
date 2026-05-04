@@ -5,6 +5,7 @@ import {
   buildScienceFoundationBlock,
   normalizePhaseForRules,
 } from '@/lib/practitioners'
+import { validateAndRetryAll } from '@/lib/dishRetry'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -227,6 +228,27 @@ Use the return_cards tool to deliver your three cards.`
     if (cards.meal) cards.meal.practitioners = sanitizePractitioners(cards.meal.practitioners)
     if (cards.movement) cards.movement.practitioners = sanitizePractitioners(cards.movement.practitioners)
     if (cards.energy) cards.energy.practitioners = sanitizePractitioners(cards.energy.practitioners)
+
+    // Macro validation pass for the daily meal card — same path as
+    // generate-week. The meal card uses 'meal' as the meal-type key (350-430
+    // kcal · 30-35g protein, dinner-equivalent). Severe failures trigger
+    // a single Haiku retry with phase + diet aware constraints.
+    if (cards.meal) {
+      const validationCtx = {
+        diet: profile?.diet || 'everything',
+        carbStrictness: profile?.carbStrictness || 'gentle',
+        phaseName: phase?.name || 'unknown',
+        cuisines: profile?.cuisines || [],
+        pantry: kitchen || '',
+        allowedSurnames: ALLOWED_SURNAMES,
+      }
+      const dishes = [cards.meal]
+      const { audit } = await validateAndRetryAll(client, dishes, 'meal', validationCtx, { maxRetries: 1 })
+      cards.meal = dishes[0]
+      console.log('[generate-cards] meal validation', JSON.stringify(audit, null, 2))
+      // Re-sanitize practitioners after retry (Haiku may have reshuffled them)
+      cards.meal.practitioners = sanitizePractitioners(cards.meal.practitioners)
+    }
 
     // Observability — distribution audit hook. After two weeks, compare
     // citation frequency across the 10; if any are never cited, expand or

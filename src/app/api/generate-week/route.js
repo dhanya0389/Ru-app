@@ -4,6 +4,7 @@ import {
   ALLOWED_SURNAMES,
   buildWeeklyScienceFoundationBlock,
 } from '@/lib/practitioners'
+import { validateAndRetryAll } from '@/lib/dishRetry'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
@@ -145,6 +146,12 @@ INGREDIENT QUANTITY RULES (critical for macro accuracy):
 PANTRY AWARENESS:
 - The user has provided a pantry list. Prefer dishes that use those items.
 - Do not require ingredients the user already lacks if reasonable substitutions exist within their pantry.
+
+CUISINE ADHERENCE — STRICT:
+- The user picks 1–3 cuisines during onboarding. Every dish MUST sit inside that cuisine palette. If the user picked "Indian, Mediterranean", do NOT generate Japanese, Thai, Mexican, or American dishes — even if the ingredients overlap.
+- Cuisine = flavor profile + cooking technique + key spices, not just ingredients. "Soy-ginger salmon" reads Japanese; "Lemon-oregano salmon" reads Mediterranean. Pick the framing that matches.
+- For each meal, name a specific cuisine in the title or description. This is a forcing function — if you can't name the cuisine, you're drifting toward generic.
+- Mix across the week, but every dish anchors to ONE cuisine on the user's list.
 
 SUPPLEMENTS:
 - The user reports they take: ${supplements?.join(', ') || 'nothing reported'}.
@@ -311,6 +318,34 @@ BEFORE FINALIZING EACH DISH: do a quick mental sum of (animal/plant protein kcal
     allDishes.forEach((dish) => {
       dish.practitioners = sanitizePractitioners(dish.practitioners)
     })
+
+    // Macro validation pass — for every dish, check kcal/protein/carbs/fat
+    // against phase + diet aware targets. Severe failures (e.g. 800 kcal
+    // dinner against a 350-430 cap, or 18g protein against a 30g floor)
+    // trigger parallel Haiku retries. After retry we re-run USDA on the
+    // new ingredient list so the user sees real macros, not Haiku's guess.
+    // Per-meal-type retries are capped at 3 each to bound latency.
+    const validationCtx = {
+      diet: profile?.diet || 'everything',
+      carbStrictness: profile?.carbStrictness || 'gentle',
+      phaseName: weekDays?.[0]?.phase || 'unknown',
+      cuisines: profile?.cuisines || [],
+      pantry: pantry || '',
+      allowedSurnames: ALLOWED_SURNAMES,
+    }
+    const validationAudit = []
+    for (const cat of ['breakfasts', 'lunches', 'snacks', 'dinners']) {
+      if (!menu[cat]?.length) continue
+      const { audit } = await validateAndRetryAll(
+        client,
+        menu[cat],
+        cat,
+        validationCtx,
+        { maxRetries: 3 }
+      )
+      validationAudit.push({ category: cat, entries: audit })
+    }
+    console.log('[generate-week] macro validation', JSON.stringify(validationAudit, null, 2))
 
     // Observability — distribution audit hook for weekly generation.
     const citationCounts = {}
