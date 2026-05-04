@@ -575,25 +575,47 @@ function DrinksSection({ drinks }) {
   const grouped = { morning: [], afternoon: [], evening: [] }
   drinks.forEach((d) => grouped[d.timeOfDay]?.push(d))
 
+  // Mirror MenuSection's card aesthetic: each drink becomes its own boxed
+  // card under a time-of-day sub-header. The previous inline "Title — long
+  // reason" treatment was too dense (drink reasons run 1-2 sentences); the
+  // card frame gives breathing room and visual parity with the meal blocks.
   return (
     <section>
-      <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">Drinks</h3>
-      <div className="space-y-3">
-        {['morning', 'afternoon', 'evening'].map((timeOfDay) => (
-          grouped[timeOfDay].length > 0 && (
-            <div key={timeOfDay} className="bg-white/50 rounded-xl p-3">
-              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth mb-2">{timeOfDay}</p>
-              <div className="space-y-1.5">
-                {grouped[timeOfDay].map((d, i) => (
-                  <div key={i} className="text-sm text-ruhi-deep">
-                    <span className="font-medium">{d.title}</span>
-                    <span className="text-xs text-ruhi-earth"> — {d.reason}</span>
+      <div className="mb-2 px-1">
+        <h3 className="text-xs uppercase tracking-widest text-ruhi-earth">Drinks</h3>
+      </div>
+      <div className="space-y-5">
+        {['morning', 'afternoon', 'evening'].map((timeOfDay) => {
+          const list = grouped[timeOfDay]
+          if (!list?.length) return null
+          return (
+            <div key={timeOfDay}>
+              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-2 px-1">
+                {timeOfDay}
+              </p>
+              <div className="space-y-2">
+                {list.map((d, i) => (
+                  <div
+                    key={i}
+                    className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm"
+                  >
+                    <h4 className="font-display text-base text-ruhi-deep leading-tight mb-1">
+                      {d.title}
+                    </h4>
+                    {d.reason && (
+                      <p className="text-xs text-ruhi-earth leading-relaxed">{d.reason}</p>
+                    )}
+                    {d.phaseFit?.length > 0 && (
+                      <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mt-2">
+                        {d.phaseFit.join(' · ')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )
-        ))}
+        })}
       </div>
     </section>
   )
