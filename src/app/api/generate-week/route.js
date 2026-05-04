@@ -62,7 +62,72 @@ CARB STRICTNESS — driven by user's profile.carbStrictness setting:
 UNIVERSAL MEAL RULE (every meal, every phase, no exception):
 - Sequencing: vegetables first → protein + fat second → carbs last. This is non-negotiable.
 
-PROTEIN FLOOR:
+⚠️ PER-MEAL CALORIE + PROTEIN TARGETS — THE SINGLE MOST IMPORTANT RULE ⚠️
+
+Every dish you generate MUST land inside the range for its meal-type:
+- Breakfasts: 350–420 kcal · 25–30g protein
+- Lunches:    420–500 kcal · 35–40g protein
+- Snacks:     150–220 kcal · 10–15g protein
+- Dinners:    350–430 kcal · 30–35g protein · always warm
+
+These are HARD ranges, not suggestions. The user's USDA macro pipeline computes calories from your actual listed ingredient quantities, so if you write "200g salmon + 1 whole avocado + 2 eggs + sourdough", the user will SEE 950 kcal — regardless of what calorie number you claim. The math is enforced after you submit.
+
+PLAN PORTIONS BACKWARD from the target:
+  "What 420–500 kcal combination of ingredients hits 35–40g protein for this lunch?"
+
+PROTEIN-SOURCE STRATEGY (the math reason behind the next rule):
+The user's calorie + protein targets are tuned for animal-protein-anchored meals.
+Animal protein gives ~25-30g protein per 100-120g cooked at ~150-200 kcal — which
+fits inside the targets. Plant protein (lentils, chickpeas, beans) gives only
+~9g per 100g cooked — meaning hitting 30g+ protein from plants alone requires
+300g+ legumes (~300+ kcal before anything else), which overshoots the cap.
+
+THEREFORE — for lunches and dinners (high protein floors of 35g and 30-35g):
+- DEFAULT to animal protein as the anchor: chicken, salmon, white fish, eggs,
+  Greek yogurt, paneer, cottage cheese. Use 100-150g cooked.
+- A small amount of plant protein (60-100g cooked lentils/chickpeas) can be
+  added as a side, NOT the main protein source.
+- AVOID all-plant high-protein dinners. A lentil soup or chickpea stew that
+  has to hit 30g protein from legumes alone WILL blow past 600 kcal.
+- For pescatarian/vegetarian users: use eggs, paneer, Greek yogurt, cottage
+  cheese, or tofu/tempeh (~10g pro per 100g) as the animal-protein equivalent.
+- For full-vegan ONLY: relax protein floor to 20-25g; the user's strict
+  calorie cap doesn't permit higher all-plant protein in a single meal.
+
+PORTION GUARDRAILS (use these as anchors — exceeding them blows the budget):
+- Animal protein per meal: 100–150g cooked. NOT 180g+, NOT a whole filet.
+- Plant protein as SIDE (legumes, beans, tofu, tempeh): 60–100g cooked.
+- Plant protein as MAIN (only for full-vegan meals): 150–200g cooked, max.
+- Grains (cooked): 60–90g (~⅓ cup cooked). NOT 1 full cup.
+- Avocado: 50–100g (¼ to ½ fruit). NEVER a whole avocado in one meal.
+- Eggs: 1–2 large per meal. NOT 3 or 4.
+- Olive oil / ghee / butter: 1 tbsp (15g / ~120 kcal) max.
+- Tahini / nut butter: 1–2 tbsp (15–30g / ~100–200 kcal) max.
+- Cheese / paneer: 30–50g per meal.
+- Yogurt (Greek): 150–170g per meal.
+- Coconut milk: 60-100ml max (~120-200 kcal — easy to overdo in stews).
+
+CONCRETE WORKED EXAMPLES (these hit target):
+
+LUNCH (target 420–500 kcal · 35–40g protein):
+  120g grilled chicken breast    → 200 kcal · 36g pro
+  80g cooked quinoa              → 95 kcal · 4g pro
+  100g cooked chickpeas          → 115 kcal · 8g pro
+  60g spinach + lemon            → 15 kcal · 2g pro
+  1 tsp olive oil                → 40 kcal
+  TOTAL: 465 kcal · 50g pro ← protein slightly over, calorie ✓
+
+DINNER (target 350–430 kcal · 30–35g protein):
+  120g pan-seared salmon         → 280 kcal · 25g pro
+  80g cooked brown rice          → 90 kcal · 2g pro
+  60g sautéed spinach            → 15 kcal · 2g pro
+  1 tsp olive oil                → 40 kcal
+  ½ lemon                        → 5 kcal
+  TOTAL: 430 kcal · 29g pro ← protein 1g low, OK
+
+If any single component (avocado, oil drizzle, grain serving) is >150 kcal, you're probably blowing the budget. CHECK YOUR TOTALS before finalizing each dish. Lunches and dinners are the highest-risk — do NOT exceed the upper bound.
+
+PROTEIN FLOOR (in addition to the per-meal target ranges above):
 - Default: 25g minimum per meal (30g+ for luteal/menstrual when blood sugar regulation matters most)
 - If bodyData.proteinFloor is provided, use that instead.
 
@@ -116,12 +181,16 @@ ${bodyData ? `BODY DATA (use these targets):
 - Protein floor: ${bodyData.proteinFloor || 25}g minimum
 - Protein target: ${bodyData.proteinTarget || 'hit floor'}` : ''}
 
+⚠️ REMINDER — every dish you write must hit its per-meal calorie + protein range. The math is enforced by USDA on the user's side. Your stated calorie/macro values must match what the listed gram-quantities actually produce when looked up. Lunches and dinners are highest-risk — keep portions tight, NEVER include a whole avocado, NEVER exceed 150g of any single protein source, NEVER use more than 1 tbsp of oil.
+
 Use the return_weekly_menu tool to deliver:
 1. A menu of dishes (3 breakfasts + 4 lunches + 3 snacks + 4 dinners + 6–9 drinks across morning/afternoon/evening). Each dish phase-tagged with which days it suits. Users will rotate through these across the planning window — keep variety bounded so meal-prep is realistic.
 2. An auto-assignment of dishes to ALL ${weekDays.length} days in this planning window (cycle-aware: dish must match that day's phase + mode). Rotate dishes through the days as needed (e.g. same dinner appears on multiple days). Snacks are required (non-null) for menstrual + luteal days, optional for follicular + ovulatory.
 3. An aggregated shopping list with quantities, categorized (produce/protein/pantry/dairy/frozen/other), with inPantry=true for items already in the user's pantry. Quantities should reflect the total used across the assignments (e.g. a dinner that appears 3 days needs 3× the protein).
 4. Phase-transition callouts (1–3 short strings) for any day-to-day phase shifts in the window.
-5. A seed-cycling note if applicable.`
+5. A seed-cycling note if applicable.
+
+BEFORE FINALIZING EACH DISH: do a quick mental sum of (animal/plant protein kcal) + (grain kcal) + (fat kcal) + (vegetable kcal). If the total is outside the target range for that meal-type, REDUCE PORTIONS until it fits. A dish at 600 kcal for a 350–430 kcal dinner is unacceptable. A dish at 250 kcal for a 420–500 kcal lunch is also unacceptable.`
 
   // Schema enforced via tool_use — guarantees valid structured output.
   const menuSchema = {

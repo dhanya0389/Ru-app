@@ -51,6 +51,44 @@ ADDITIONAL MEAL CONSTRAINTS:
 - Pair fruit with protein or fat, never alone.
 - Prioritize anti-inflammatory ingredients (turmeric+black pepper, ginger, fatty fish, berries).
 
+⚠️ CALORIE + PROTEIN TARGET — THE SINGLE MOST IMPORTANT RULE ⚠️
+
+The meal card MUST land inside this range:
+- Target: 350–430 kcal · 30–35g protein · always warm
+
+This is a HARD range. The user's USDA macro pipeline computes calories from your actual listed ingredient quantities — if you write "200g salmon + 1 whole avocado + 2 eggs + sourdough", the user will SEE 950 kcal regardless of what number you claim. The math is enforced after you submit.
+
+PLAN PORTIONS BACKWARD from the target.
+
+PROTEIN-SOURCE STRATEGY (the math reason for the next rule):
+The user's targets (350–430 kcal · 30–35g protein) are tuned for ANIMAL-protein-anchored meals. Animal protein gives ~25-30g protein per 100-120g cooked at ~150-200 kcal — fits the target. Plant protein gives only ~9g per 100g cooked, so hitting 30g+ protein from plants alone needs 300g+ legumes (~300+ kcal before anything else), which overshoots.
+
+THEREFORE — DEFAULT to animal protein as the anchor: chicken, salmon, white fish, eggs, Greek yogurt, paneer, cottage cheese. Use 100-150g cooked. A small amount of plant protein (60-100g cooked lentils/chickpeas) can be a SIDE, NOT the main. AVOID all-plant high-protein dinners — they blow past 600 kcal. For full-vegan users: relax protein floor to 20-25g.
+
+PORTION GUARDRAILS (use these as anchors — exceeding them blows the budget):
+- Animal protein: 100–150g cooked. NOT 180g+, NOT a whole filet.
+- Plant protein as SIDE: 60–100g cooked legumes.
+- Plant protein as MAIN (vegan only): 150–200g max.
+- Grains (cooked): 60–90g (~⅓ cup cooked). NOT 1 full cup.
+- Avocado: 50–100g (¼ to ½ fruit). NEVER a whole avocado in one meal.
+- Eggs: 1–2 large per meal. NOT 3 or 4.
+- Olive oil / ghee / butter: 1 tbsp (15g / ~120 kcal) max.
+- Tahini / nut butter: 1–2 tbsp (15–30g / ~100–200 kcal) max.
+- Cheese / paneer: 30–50g per meal.
+- Coconut milk: 60-100ml max (~120-200 kcal — easy to overdo in stews).
+
+CONCRETE WORKED EXAMPLE (this hits target):
+  120g pan-seared salmon         → 280 kcal · 25g pro
+  80g cooked brown rice          → 90 kcal · 2g pro
+  60g sautéed spinach            → 15 kcal · 2g pro
+  1 tsp olive oil                → 40 kcal
+  ½ lemon                        → 5 kcal
+  TOTAL: 430 kcal · 29g pro ← right at the edge, OK
+
+If any single component is >200 kcal you're probably blowing the budget. CHECK YOUR TOTAL before finalizing. Use grams in the ingredients list — that's what makes the math enforceable. "1 whole avocado" with no gram count gets defaulted to 200g and blows the budget. Write "½ avocado (100g)" or "100g avocado" instead.
+
+If the user is in luteal/menstrual, lean toward the upper protein bound (35g+).
+
 VOICE / WRITING RULES:
 - Card body copy ("description", "tip", "steps") stays in Ruhi's voice — direct, warm, embodied; first person where natural. Do NOT name-drop practitioners inside body copy ("Vitti says…", "per Pelz…"). The practitioner attribution lives ONLY in the structured \`practitioners\` field on each card; the UI surfaces it separately.
 - Avoid the phrases "scientifically proven" or "clinically proven" anywhere in card copy.
@@ -91,6 +129,8 @@ TODAY:
 - What's in my kitchen: ${kitchen || 'general pantry staples'}
 ${excludeMeal ? `- Do NOT suggest "${excludeMeal}" — give me something different.` : ''}
 ${pastEntriesBlock}
+
+⚠️ REMINDER — the meal card must hit 350–430 kcal · 30–35g protein. The math is enforced by USDA on the user's side. NEVER include a whole avocado or 200g+ of any single protein source. BEFORE finalizing the meal: do a quick mental sum of (protein kcal + grain kcal + fat kcal + vegetable kcal). If the total exceeds 430 kcal, REDUCE PORTIONS until it fits.
 
 Use the return_cards tool to deliver your three cards.`
 
