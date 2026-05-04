@@ -1,9 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getProfile, getPantry, savePantry } from '@/lib/storage'
+import {
+  getProfile,
+  getPantry,
+  savePantry,
+  parsePantryChips,
+  joinPantryChips,
+  mergePantryChips,
+} from '@/lib/storage'
 import { getCurrentPhase, phaseInfo } from '@/lib/phases'
 import VoiceInput from '@/components/VoiceInput'
+import PantryImageUpload from '@/components/PantryImageUpload'
 import CardView from '@/components/CardView'
 import NavMenu from '@/components/NavMenu'
 import TopTabs from '@/components/TopTabs'
@@ -27,15 +35,19 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
   const [phase, setPhase] = useState(null)
   const [energy, setEnergy] = useState(3)
   const [cookingMood, setCookingMood] = useState(null)
+  // The kitchen textbox is "anything to ADD on top of the saved pantry" — it
+  // starts empty by default. The saved pantry is the canonical inventory and
+  // is shown via the "Your pantry: N items · Edit" affordance below the input.
   const [kitchen, setKitchen] = useState('')
+  const [savedPantryCount, setSavedPantryCount] = useState(0)
   const [showCards, setShowCards] = useState(false)
 
   useEffect(() => {
     const p = getProfile()
     setProfile(p)
-    // Pre-fill the kitchen field with the persisted pantry so the user
-    // doesn't have to retype their inventory every check-in.
-    setKitchen(getPantry())
+    // Surface the saved pantry size — the textbox stays empty, the user adds
+    // to it (additive), and Edit jumps into the chip-list editor.
+    setSavedPantryCount(parsePantryChips(getPantry()).length)
     if (p?.lastPeriodStart) {
       const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
       const len = cycleLengthMap[p.cycleLength] || 28
@@ -48,6 +60,15 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
     }
   }, [])
 
+  // Compute the merged kitchen string when generating cards — combines the
+  // saved pantry with whatever the user typed in the textbox (additive). This
+  // is what the API actually sees; the user-visible textbox stays a quick-add.
+  const mergedKitchen = (() => {
+    const saved = parsePantryChips(getPantry())
+    const additions = parsePantryChips(kitchen)
+    return joinPantryChips(mergePantryChips(saved, additions))
+  })()
+
   if (showCards) {
     return (
       <CardView
@@ -55,7 +76,7 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
         phase={phase}
         energy={energy}
         cookingMood={cookingMood}
-        kitchen={kitchen}
+        kitchen={mergedKitchen}
         onBack={() => setShowCards(false)}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
@@ -127,25 +148,50 @@ export default function DailyCheckin({ menuOpen, setMenuOpen, onNavigate }) {
         </div>
       </div>
 
-      {/* Kitchen input — voice + text */}
+      {/* Kitchen input — additive textbox. Anything the user types here gets
+          MERGED into the saved pantry on submit (never overwrites). The
+          canonical inventory lives in the Pantry editor (NavMenu → Pantry);
+          this textbox is a quick-add for "I just bought eggs, plan around
+          them too." Empty by default. */}
       <div className="w-full mb-10 screen-enter">
-        <p className="text-base text-ruhi-earth mb-2">What's in your kitchen?</p>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-base text-ruhi-earth">Anything new to add?</p>
+          <PantryImageUpload
+            compact
+            onConfirm={(items) => {
+              const merged = mergePantryChips(parsePantryChips(kitchen), items)
+              setKitchen(joinPantryChips(merged))
+            }}
+          />
+        </div>
         <VoiceInput
-          label="What's in your kitchen"
-          placeholder="e.g. chickpeas, spinach, rice, chicken thighs..."
+          label="Anything new to add"
+          placeholder="Optional — e.g. eggs, kefir..."
           initialValue={kitchen}
           onResult={(text) => setKitchen(text)}
         />
-        <p className="text-sm text-ruhi-earth mt-1">Type, use voice, or leave blank — your pantry is remembered for next time.</p>
+        <div className="flex items-center justify-between mt-1.5 gap-2">
+          <p className="text-xs text-ruhi-earth/80">
+            Your pantry: <span className="text-ruhi-deep font-medium">{savedPantryCount}</span> {savedPantryCount === 1 ? 'item' : 'items'}
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigate?.('pantry')}
+            className="text-xs text-ruhi-earth/80 hover:text-ruhi-deep underline-offset-2 hover:underline"
+          >
+            Edit
+          </button>
+        </div>
       </div>
 
       {/* CTA */}
       <button
         onClick={() => {
-          // Persist the pantry on submit so the next check-in pre-fills.
-          // We save on submit (not every keystroke) so accidental typing in
-          // the field doesn't permanently alter the saved pantry.
-          savePantry(kitchen)
+          // Additive merge: anything the user typed in the textbox is folded
+          // into the saved pantry, deduped. Never overwrites — the canonical
+          // pantry only grows here, not shrinks. (Removal happens via the
+          // chip-list editor, NavMenu → Pantry.)
+          savePantry(mergedKitchen)
           setShowCards(true)
         }}
         className="w-full py-3 rounded-full bg-ruhi-deep text-ruhi-cream text-lg

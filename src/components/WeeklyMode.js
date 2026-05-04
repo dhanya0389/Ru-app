@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getProfile, getPantry, savePantry } from '@/lib/storage'
+import {
+  getProfile,
+  getPantry,
+  savePantry,
+  parsePantryChips,
+  joinPantryChips,
+  mergePantryChips,
+} from '@/lib/storage'
 import {
   getWeeklyPlan,
   saveWeeklyPlan,
@@ -12,6 +19,7 @@ import {
 import NavMenu from '@/components/NavMenu'
 import TopTabs from '@/components/TopTabs'
 import VoiceInput from '@/components/VoiceInput'
+import PantryImageUpload from '@/components/PantryImageUpload'
 import SendShoppingListSheet from '@/components/SendShoppingListSheet'
 
 const PHASE_LABEL = {
@@ -83,7 +91,11 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   const [tipIndex, setTipIndex] = useState(0)
   const [profile, setProfile] = useState(null)
   const [optIns, setOptIns] = useState({ seedCycling: false })
+  // Additions textbox — starts empty. The saved pantry is the canonical
+  // inventory; this is a quick-add for "I just bought X, plan around it too."
+  // On submit we merge (saved pantry ∪ additions) and that's what the API sees.
   const [pantry, setPantry] = useState('')
+  const [savedPantryCount, setSavedPantryCount] = useState(0)
   // Calendar range picker — user picks start + end. Default: today → today+6
   // (a 7-day window). Hard cap at 14 days.
   const [startDate, setStartDate] = useState(todayLocalISO())
@@ -99,9 +111,10 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     setProfile(getProfile())
     setOptIns(getOptIns())
     setPlan(getWeeklyPlan())
-    // Pre-fill the pantry field with what was persisted from the last
-    // Daily Check-in or pantry edit. Same string is shared across surfaces.
-    setPantry(getPantry())
+    // Show the saved pantry COUNT (not its contents) — the textbox stays
+    // empty so any typed items are additive, not destructive. The chip-list
+    // editor (NavMenu → Pantry) is the canonical place to edit existing items.
+    setSavedPantryCount(parsePantryChips(getPantry()).length)
   }, [])
 
   // Rotate tips while generating
@@ -131,9 +144,14 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     setGenerating(true)
     setError(null)
     setTipIndex(0)
-    // Persist the pantry on submit so the next visit (here or on Daily
-    // Check-in) pre-fills with the same inventory.
-    savePantry(pantry)
+    // Additive merge: textbox additions fold into the saved pantry, deduped.
+    // The merged set is what the API uses AND what we persist (the saved
+    // pantry only grows here, never shrinks — removal lives in the chip
+    // editor). Same shape as before — comma-joined free-text for back-compat.
+    const mergedPantry = joinPantryChips(
+      mergePantryChips(parsePantryChips(getPantry()), parsePantryChips(pantry))
+    )
+    savePantry(mergedPantry)
 
     const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
     const cycleLengthDays = cycleLengthMap[profile.cycleLength] || 28
@@ -146,7 +164,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
         body: JSON.stringify({
           profile,
           weekDays,
-          pantry,
+          pantry: mergedPantry,
           energy,
           supplements: profile.supplements || [],
           seedCycling: optIns.seedCycling,
@@ -224,11 +242,32 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
           <div className="h-px bg-ruhi-warm" aria-hidden="true" />
 
-          {/* Saved pantry — surfaces the persisted inventory + lets the user
-              jump to the editor without leaving the planning flow. */}
+          {/* Pantry — additive textbox. Empty by default. The saved inventory
+              count is shown so the user knows what's already there; the
+              chip-list editor (Edit link → NavMenu Pantry) is where items get
+              removed or fully reorganized. Photo upload adds chips here too,
+              same additive semantics as text/voice. */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs text-ruhi-earth">Your pantry</label>
+            <div className="flex items-center justify-between mb-1.5 gap-2">
+              <label className="text-xs text-ruhi-earth">Anything new to add?</label>
+              <PantryImageUpload
+                compact
+                onConfirm={(items) => {
+                  const merged = mergePantryChips(parsePantryChips(pantry), items)
+                  setPantry(joinPantryChips(merged))
+                }}
+              />
+            </div>
+            <VoiceInput
+              label="Anything new to add"
+              placeholder="Optional — e.g. salmon, kefir..."
+              initialValue={pantry}
+              onResult={(text) => setPantry(text)}
+            />
+            <div className="flex items-center justify-between mt-1.5 gap-2">
+              <p className="text-[11px] text-ruhi-earth/80">
+                Your pantry: <span className="text-ruhi-deep font-medium">{savedPantryCount}</span> {savedPantryCount === 1 ? 'item' : 'items'}
+              </p>
               <button
                 type="button"
                 onClick={() => onNavigate?.('pantry')}
@@ -237,12 +276,6 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
                 Edit
               </button>
             </div>
-            <VoiceInput
-              label="What's in your kitchen"
-              placeholder="e.g. salmon, lentils, spinach, eggs, sweet potato..."
-              initialValue={pantry}
-              onResult={(text) => setPantry(text)}
-            />
           </div>
 
           <div className="h-px bg-ruhi-warm" aria-hidden="true" />
@@ -542,25 +575,47 @@ function DrinksSection({ drinks }) {
   const grouped = { morning: [], afternoon: [], evening: [] }
   drinks.forEach((d) => grouped[d.timeOfDay]?.push(d))
 
+  // Mirror MenuSection's card aesthetic: each drink becomes its own boxed
+  // card under a time-of-day sub-header. The previous inline "Title — long
+  // reason" treatment was too dense (drink reasons run 1-2 sentences); the
+  // card frame gives breathing room and visual parity with the meal blocks.
   return (
     <section>
-      <h3 className="text-xs uppercase tracking-widest text-ruhi-earth mb-2 px-1">Drinks</h3>
-      <div className="space-y-3">
-        {['morning', 'afternoon', 'evening'].map((timeOfDay) => (
-          grouped[timeOfDay].length > 0 && (
-            <div key={timeOfDay} className="bg-white/50 rounded-xl p-3">
-              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth mb-2">{timeOfDay}</p>
-              <div className="space-y-1.5">
-                {grouped[timeOfDay].map((d, i) => (
-                  <div key={i} className="text-sm text-ruhi-deep">
-                    <span className="font-medium">{d.title}</span>
-                    <span className="text-xs text-ruhi-earth"> — {d.reason}</span>
+      <div className="mb-2 px-1">
+        <h3 className="text-xs uppercase tracking-widest text-ruhi-earth">Drinks</h3>
+      </div>
+      <div className="space-y-5">
+        {['morning', 'afternoon', 'evening'].map((timeOfDay) => {
+          const list = grouped[timeOfDay]
+          if (!list?.length) return null
+          return (
+            <div key={timeOfDay}>
+              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-2 px-1">
+                {timeOfDay}
+              </p>
+              <div className="space-y-2">
+                {list.map((d, i) => (
+                  <div
+                    key={i}
+                    className="bg-white/70 rounded-2xl p-4 border border-white/60 shadow-sm"
+                  >
+                    <h4 className="font-display text-base text-ruhi-deep leading-tight mb-1">
+                      {d.title}
+                    </h4>
+                    {d.reason && (
+                      <p className="text-xs text-ruhi-earth leading-relaxed">{d.reason}</p>
+                    )}
+                    {d.phaseFit?.length > 0 && (
+                      <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mt-2">
+                        {d.phaseFit.join(' · ')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )
-        ))}
+        })}
       </div>
     </section>
   )

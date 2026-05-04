@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { isOnboardingComplete, getProfile, clearProfile } from '@/lib/storage'
-import { getWeeklyPlan } from '@/lib/weeklyPlan'
+import { getWeeklyPlan, clearWeeklyPlan } from '@/lib/weeklyPlan'
 import { clearEntries as clearJournal } from '@/lib/journal'
 import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
@@ -84,8 +84,19 @@ export default function Home() {
       return
     }
     if (target === 'reset') {
+      // Clear everything that's keyed to a user identity. Pantry intentionally
+      // persists — it's an inventory, not user state, and the user explicitly
+      // wanted it kept across resets unless cleared via a separate affordance.
+      // Pantry-categories cache (ruhi_pantry_categories) is keyed by item
+      // names → buckets, so it stays valid for the preserved pantry items.
       clearProfile()
       clearJournal()
+      clearWeeklyPlan()
+      // Opt-ins (seedCycling, bodyDataTier, weeklyMode) live under their own
+      // key in lib/weeklyPlan; no exported clearer, so remove directly.
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('ruhi_optins')
+      }
       setScreen('landing')
       return
     }

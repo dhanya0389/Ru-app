@@ -78,7 +78,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
           <MenuItem onClick={() => onNavigate('today')} label="Today" />
           <MenuItem onClick={() => onNavigate('weekly')} label="This week" />
           <MenuItem onClick={() => onNavigate('journal')} label="Journal" />
-          <MenuItem onClick={() => onNavigate('pantry')} label="Edit pantry" />
+          <MenuItem onClick={() => onNavigate('pantry')} label="Pantry" />
           <MenuItem onClick={() => onNavigate('sources')} label="Sources" />
           <MenuItem onClick={() => onNavigate('welcome')} label="Welcome" />
 

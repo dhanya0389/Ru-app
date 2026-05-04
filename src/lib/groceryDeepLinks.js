@@ -82,3 +82,30 @@ export function formatHumanList(items) {
   if (!items.length) return ''
   return items.map((line) => `- ${line}`).join('\n')
 }
+
+// Strip the leading quantity from a formatted shopping-list line so the
+// remaining text is a clean search term. Examples:
+//   "500g chicken breast"      → "chicken breast"
+//   "1.5kg sweet potato"       → "sweet potato"
+//   "4 large eggs"             → "large eggs"
+//   "1 cup tahini"             → "tahini"
+//   "240ml broth"              → "broth"
+//   "2 medium tomatoes"        → "medium tomatoes"
+//   "Pinch of salt"            → "Pinch of salt"   (no number → leave)
+//   "1/2 lemon"                → "lemon"
+// The grocery store searches the noun, not the prep amount — quantities make
+// the search useless ("500g chicken breast" matches nothing on Amazon).
+export function extractItemName(line) {
+  if (!line) return ''
+  const s = String(line).trim()
+  // Match: leading number (digits/fractions/unicode), optional unit token —
+  // unit MUST be followed by whitespace or end-of-string (lookahead) so a
+  // bare "l" inside "lemon" / "large" doesn't get eaten as a liter unit.
+  const m = s.match(
+    /^(?:[\d./]+|[½⅓⅔¼¾⅛⅜⅝⅞])\s*(?:(?:g|kg|ml|l|oz|lb|cup|cups|tsp|tbsp)(?=\s|$))?\s*(.*)$/i
+  )
+  if (!m) return s
+  // Drop a leading "of" (e.g. "1 cup of broth" → "broth").
+  const rest = (m[1] || '').replace(/^of\s+/i, '').trim()
+  return rest || s
+}
