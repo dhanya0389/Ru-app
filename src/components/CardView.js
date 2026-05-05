@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { phaseInfo } from '@/lib/phases'
 import { findRelevantEntries } from '@/lib/journal'
+import { getPantryPreferences } from '@/lib/pantryParse'
 import NavMenu from '@/components/NavMenu'
 import VoiceJournal from '@/components/VoiceJournal'
 
@@ -171,6 +172,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
         body: JSON.stringify({
           profile, phase, energy, cookingMood, kitchen,
           pastEntries: pastEntriesForCards(),
+          preferences: getPantryPreferences(),
         }),
       })
       if (!res.ok) throw new Error('API failed')
@@ -200,6 +202,7 @@ export default function CardView({ profile, phase, energy, cookingMood, kitchen,
           profile, phase, energy, cookingMood, kitchen,
           excludeMeal: cards?.meal?.title,
           pastEntries: pastEntriesForCards(),
+          preferences: getPantryPreferences(),
         }),
       })
       if (!res.ok) throw new Error('API failed')

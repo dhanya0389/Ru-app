@@ -24,6 +24,8 @@ export async function POST(request) {
     supplements,      // string[] — user-reported supplements (Tier 1 tracking only)
     seedCycling,      // boolean — opt-in
     bodyData,         // optional: { calorieTarget?, proteinFloor?, proteinTarget?, rmr? }
+    preferences,      // string[] — soft, AI-extracted from typed prose ("wants eggs every morning")
+    constraints,      // { maxProteins?, maxCarbs?, maxVegetables?, maxFruits?, maxFats? } — HARD weekly caps
   } = await request.json()
 
   const energyHints = {
@@ -36,6 +38,15 @@ HARD RULES for low energy (apply to every dish you generate):
 - Ingredient count per dish: ≤ 6 items (loose target — 7-8 is OK if 4+ are no-prep pantry items like spices, oil, salt).
 - Repeat the same easy dish multiple days when possible.
 
+LOW-ENERGY SHORTCUTS — ACTIVELY USE (do not treat these as cop-outs):
+- Frozen vegetables (frozen spinach, frozen broccoli florets, frozen peas, frozen edamame, frozen corn, frozen cauliflower rice, frozen riced broccoli, frozen stir-fry mixes) — microwave or steam-in-bag straight into the dish. Nutritionally equivalent to fresh and zero prep.
+- Pre-cooked grains (microwave rice / quinoa pouches, pre-cooked lentil pouches, frozen pre-cooked brown rice).
+- Canned legumes (rinsed chickpeas / black beans / lentils) — drain + go.
+- Rotisserie chicken (when diet permits) — pull and use cold or briefly warmed.
+- Pre-washed bagged greens, pre-chopped vegetables, pre-spiralized noodles, pre-crumbled feta/goat cheese.
+- Frozen fish fillets (single-portion vacuum-packed) — bake from frozen, no thaw.
+At energy 1, prefer dishes built from these over fresh-prep equivalents. A "5-min stir-fry" using frozen mixed veg + microwave rice + pre-cooked tofu is better for the user right now than a fresh version of the same.
+
 The phrase to internalize: "low energy = low effort, not necessarily low time." A bowl of pre-cooked rice + canned chickpeas + frozen spinach + olive oil + lemon (5 ingredients, 5 min hands-on, 0 min cook) is perfect. So is dump-everything-in-a-pot dal that simmers 60 minutes unattended (5 min hands-on).`,
 
     2: `User reports LOW energy (2/5).
@@ -45,7 +56,13 @@ Same hard rules as energy 1, slightly relaxed:
 - One-pot / set-and-forget cooking welcome (total time unconstrained)
 - NO constant-attention dishes
 - Ingredient count: ≤ 7 items (loose target)
-- 1-2 dishes that repeat across multiple days for meal-prep efficiency`,
+- 1-2 dishes that repeat across multiple days for meal-prep efficiency
+
+LOW-ENERGY SHORTCUTS — ACTIVELY USE:
+- Frozen vegetables (spinach, broccoli, cauliflower rice, riced broccoli, stir-fry mixes, peas, edamame, corn) — microwave or steam-in-bag.
+- Pre-cooked grains (microwave rice / quinoa pouches, frozen pre-cooked brown rice, pre-cooked lentil pouches).
+- Canned legumes, pre-washed greens, pre-chopped vegetables, rotisserie chicken (diet permitting), frozen fish fillets baked from frozen.
+Mix freely with fresh ingredients — half the dishes this week should lean on at least one of these shortcuts.`,
 
     3: 'User reports STEADY energy (3/5). Balanced mix of simple and slightly more involved recipes. Standard cycle-aware meal planning. No special caps.',
     4: 'User reports GOOD energy (4/5). Room for one or two more ambitious recipes (more ingredients, longer active cook time). Variety welcome.',
@@ -194,6 +211,17 @@ PANTRY — A HINT, NOT A CONSTRAINT:
 - When pantry contains a forbidden ingredient (vegetarian + salmon, vegan + eggs): IGNORE that pantry item completely. Diet > pantry, always.
 - Pull from the wide world of recipes the user's chosen cuisines support. Indian + Mediterranean alone has hundreds of distinct dishes — variety isn't a constraint, it's an asset.
 
+PANTRY SHORTCUT HINTS — APPLY AT EVERY ENERGY LEVEL:
+- Scan the user's pantry for pre-cooked, canned, frozen, or pre-prepped versions of ingredients your dish uses. When one matches, surface it inline as a shortcut tip — don't force the substitution, offer it.
+- Examples of matches to look for:
+  - dish calls for "cooked lentils" + pantry has "canned lentils" or "frozen cooked lentils" → tip: "you have canned lentils on hand — drain and use those instead of cooking from dry."
+  - dish calls for "spinach" + pantry has "frozen spinach" → tip: "frozen spinach in your pantry works — defrost and squeeze dry."
+  - dish calls for "rice" + pantry has "microwave rice pouches" or "pre-cooked rice" → tip: "skip stove-top — your pantry has microwave rice."
+  - dish calls for "chicken" + pantry has "rotisserie chicken" → tip: "you have rotisserie chicken — pull and use cold or briefly warmed."
+  - dish calls for "cauliflower rice" + pantry has "frozen cauliflower rice" → tip: "your pantry has frozen riced cauliflower — straight from bag to pan."
+- Where to surface the hint: append to the dish's \`description\` field as a single short clause, OR add it as the first step in \`steps\`. NOT in the title. Keep it conversational and one sentence.
+- Skip the hint when the pantry has no shortcut-equivalent for that dish's ingredients — silence is fine.
+
 CUISINE ADHERENCE — STRICT:
 - The user picks 1–3 cuisines during onboarding. Every dish MUST sit inside that cuisine palette. If the user picked "Indian, Mediterranean", do NOT generate Japanese, Thai, Mexican, or American dishes — even if the ingredients overlap.
 - Cuisine = flavor profile + cooking technique + key spices, not just ingredients. "Soy-ginger salmon" reads Japanese; "Lemon-oregano salmon" reads Mediterranean. Pick the framing that matches.
@@ -226,7 +254,7 @@ ${weekDays.map(d => `- ${d.dayLabel} ${d.date}: ${d.phase} day ${d.cycleDay} (${
 
 PANTRY (already on hand):
 ${pantry || 'general staples'}
-
+${formatConstraintsBlock(constraints)}${formatPreferencesBlock(preferences)}
 ENERGY THIS WEEK:
 ${energyHints[energy] || energyHints[3]}
 
@@ -484,4 +512,47 @@ function sanitizePractitioners(list) {
     if (cleaned.length === 3) break
   }
   return cleaned
+}
+
+// Render the user-supplied HARD variety caps into a block the model treats
+// as non-negotiable. "Distinct" counts apply to breakfasts + lunches +
+// dinners — snacks count separately and are deliberately unconstrained
+// (snacks need carb-leaning options in luteal/menstrual that would otherwise
+// blow a 2-carbs cap). Returns '' when no caps are set so we don't pollute
+// the prompt with empty sections.
+function formatConstraintsBlock(constraints) {
+  if (!constraints || typeof constraints !== 'object') return ''
+  const lines = []
+  if (Number.isInteger(constraints.maxProteins) && constraints.maxProteins >= 1) {
+    lines.push(`- Use AT MOST ${constraints.maxProteins} distinct protein source${constraints.maxProteins === 1 ? '' : 's'} across breakfasts + lunches + dinners (e.g. salmon + tofu = 2).`)
+  }
+  if (Number.isInteger(constraints.maxCarbs) && constraints.maxCarbs >= 1) {
+    lines.push(`- Use AT MOST ${constraints.maxCarbs} distinct carb source${constraints.maxCarbs === 1 ? '' : 's'} across breakfasts + lunches + dinners (e.g. brown rice + sweet potato = 2).`)
+  }
+  if (Number.isInteger(constraints.maxVegetables) && constraints.maxVegetables >= 1) {
+    lines.push(`- Use AT MOST ${constraints.maxVegetables} distinct vegetable${constraints.maxVegetables === 1 ? '' : 's'} across breakfasts + lunches + dinners.`)
+  }
+  if (Number.isInteger(constraints.maxFruits) && constraints.maxFruits >= 1) {
+    lines.push(`- Use AT MOST ${constraints.maxFruits} distinct fruit${constraints.maxFruits === 1 ? '' : 's'} across breakfasts + lunches + dinners.`)
+  }
+  if (Number.isInteger(constraints.maxFats) && constraints.maxFats >= 1) {
+    lines.push(`- Use AT MOST ${constraints.maxFats} distinct fat source${constraints.maxFats === 1 ? '' : 's'} (oils, nuts, seeds) across breakfasts + lunches + dinners.`)
+  }
+  if (lines.length === 0) return ''
+  return `\nUSER CONSTRAINTS FOR THIS WEEK (HARD rules — count across whole menu):
+${lines.join('\n')}
+(Snacks count separately and are NOT constrained — snacks may use a wider ingredient set.)`
+}
+
+// Soft preferences extracted from typed prose ("wants eggs every morning").
+// Honor where reasonable, but if a preference conflicts with a HARD rule
+// (diet, macro target, constraint cap) the HARD rule wins.
+function formatPreferencesBlock(preferences) {
+  if (!Array.isArray(preferences) || preferences.length === 0) return ''
+  const cleaned = preferences
+    .filter((p) => typeof p === 'string' && p.trim())
+    .map((p) => `- ${p.trim()}`)
+  if (cleaned.length === 0) return ''
+  return `\nUSER PREFERENCES (honor where reasonable — soft rules, hard rules win on conflict):
+${cleaned.join('\n')}`
 }

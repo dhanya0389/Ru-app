@@ -9,6 +9,15 @@ import {
   mergePantryChips,
 } from '@/lib/storage'
 import {
+  parsePantryText,
+  addPantryPreferences,
+  mergePantryConstraints,
+  getPantryPreferences,
+  getPantryConstraints,
+  setPantryPreferences,
+  setPantryConstraints,
+} from '@/lib/pantryParse'
+import {
   getCachedCategories,
   groupChipsByCategory,
   categorizeAndCache,
@@ -25,6 +34,17 @@ import NavMenu from '@/components/NavMenu'
 // on save and cached in localStorage; canonical pantry storage stays as the
 // comma-joined string for back-compat with Daily / Weekly / API surfaces.
 
+// Human-readable labels for the constraint cap keys returned by the
+// parse-pantry-text route. Kept here next to the chip rendering since
+// nothing else needs them.
+const CONSTRAINT_LABEL = {
+  maxProteins: 'max proteins',
+  maxCarbs: 'max carbs',
+  maxVegetables: 'max vegetables',
+  maxFruits: 'max fruits',
+  maxFats: 'max fats',
+}
+
 export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }) {
   const [chips, setChips] = useState([])
   const [draft, setDraft] = useState('')
@@ -37,19 +57,64 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
   // accidental removal. Click the same bucket's pencil to exit, or another
   // bucket's pencil to switch.
   const [editingBucket, setEditingBucket] = useState(null)
+  // Smart-parse state: while Haiku is parsing prose, disable Add and show
+  // a tiny spinner. The parsed prefs/constraints are surfaced as a small
+  // confirmation chip so the user knows their preference / cap was captured.
+  const [parsing, setParsing] = useState(false)
+  const [lastExtracted, setLastExtracted] = useState(null)
+  // Persisted preferences + constraints — shown as deletable chips so the
+  // user can review and prune what the AI captured.
+  const [savedPrefs, setSavedPrefs] = useState([])
+  const [savedCons, setSavedCons] = useState({})
   const inputRef = useRef(null)
 
   useEffect(() => {
     setChips(parsePantryChips(getPantry()))
     setCategories(getCachedCategories())
+    setSavedPrefs(getPantryPreferences())
+    setSavedCons(getPantryConstraints())
   }, [])
 
-  function addFromDraft() {
-    if (!draft.trim()) return
-    const additions = parsePantryChips(draft)
-    setChips((prev) => mergePantryChips(prev, additions))
-    setDraft('')
-    inputRef.current?.focus()
+  async function addFromDraft() {
+    if (!draft.trim() || parsing) return
+    setParsing(true)
+    setLastExtracted(null)
+    try {
+      const { items, preferences, constraints } = await parsePantryText(draft)
+      if (items.length > 0) {
+        setChips((prev) => mergePantryChips(prev, items))
+      }
+      if (preferences.length > 0) {
+        const merged = addPantryPreferences(preferences)
+        setSavedPrefs(merged)
+      }
+      if (constraints && Object.keys(constraints).length > 0) {
+        const merged = mergePantryConstraints(constraints)
+        setSavedCons(merged)
+      }
+      setLastExtracted({
+        items: items.length,
+        preferences: preferences.length,
+        constraints: Object.keys(constraints || {}).length,
+      })
+      setDraft('')
+    } finally {
+      setParsing(false)
+      inputRef.current?.focus()
+    }
+  }
+
+  function removePreference(pref) {
+    const next = savedPrefs.filter((p) => p !== pref)
+    setSavedPrefs(next)
+    setPantryPreferences(next)
+  }
+
+  function removeConstraint(key) {
+    const next = { ...savedCons }
+    delete next[key]
+    setSavedCons(next)
+    setPantryConstraints(next)
   }
 
   function addFromVoice(text) {
@@ -123,26 +188,40 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add an item — e.g. spinach"
-            aria-label="Add a pantry item"
+            placeholder="Add items, or type a preference like 'I want eggs every morning'"
+            aria-label="Add a pantry item or preference"
+            disabled={parsing}
             className="flex-1 p-3 rounded-xl bg-white/70 border border-ruhi-earth/40
-                       focus:border-ruhi-deep focus:outline-none text-ruhi-deep"
+                       focus:border-ruhi-deep focus:outline-none text-ruhi-deep
+                       disabled:opacity-60"
           />
           <button
             type="button"
             onClick={addFromDraft}
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || parsing}
             className="px-4 rounded-xl bg-ruhi-deep text-ruhi-cream text-sm
                        hover:bg-ruhi-earth transition-all
-                       disabled:opacity-40 disabled:hover:bg-ruhi-deep"
+                       disabled:opacity-40 disabled:hover:bg-ruhi-deep
+                       flex items-center justify-center gap-1.5"
           >
-            Add
+            {parsing && (
+              <span aria-hidden="true" className="w-3 h-3 border-2 border-ruhi-cream/40 border-t-ruhi-cream rounded-full animate-spin" />
+            )}
+            {parsing ? 'Reading…' : 'Add'}
           </button>
         </div>
         <p className="text-[11px] text-ruhi-earth/80 mt-1.5">
-          Press Enter to add. Comma-separated lists also work
-          (&ldquo;chickpeas, spinach, lemons&rdquo;).
+          Type items (&ldquo;eggs, kefir&rdquo;), preferences (&ldquo;eggs every morning&rdquo;),
+          or weekly caps (&ldquo;just 2 proteins&rdquo;) — Ruhi sorts them.
         </p>
+        {lastExtracted && (lastExtracted.preferences > 0 || lastExtracted.constraints > 0) && (
+          <p className="text-[11px] text-ruhi-deep mt-1.5 bg-ruhi-sage/20 rounded-md px-2 py-1.5">
+            Captured {lastExtracted.items > 0 ? `${lastExtracted.items} item${lastExtracted.items === 1 ? '' : 's'}` : 'no new items'}
+            {lastExtracted.preferences > 0 ? `, ${lastExtracted.preferences} preference${lastExtracted.preferences === 1 ? '' : 's'}` : ''}
+            {lastExtracted.constraints > 0 ? `, ${lastExtracted.constraints} weekly cap${lastExtracted.constraints === 1 ? '' : 's'}` : ''}
+            .
+          </p>
+        )}
       </div>
 
       {/* Voice + image input row */}
@@ -159,6 +238,68 @@ export default function EditPantry({ onBack, menuOpen, setMenuOpen, onNavigate }
           <PantryImageUpload onConfirm={addFromImage} />
         </div>
       </div>
+
+      {/* Saved preferences + constraints — chip list of soft preferences and
+          hard weekly variety caps the AI extracted from prose typed into the
+          quick-add box. Both are passed into Daily / Weekly generation as
+          context. Click × to forget any of them. */}
+      {(savedPrefs.length > 0 || Object.keys(savedCons).length > 0) && (
+        <div className="mb-6 bg-white/40 border border-white/60 rounded-2xl p-4">
+          <p className="text-xs uppercase tracking-widest text-ruhi-earth mb-2">
+            What Ruhi remembers
+          </p>
+          {savedPrefs.length > 0 && (
+            <div className="mb-2">
+              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-1">Preferences (soft)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {savedPrefs.map((pref) => (
+                  <span
+                    key={pref}
+                    className="inline-flex items-center gap-1.5 bg-ruhi-sage/20 text-ruhi-deep
+                               text-xs rounded-full pl-3 pr-1 py-1"
+                  >
+                    {pref}
+                    <button
+                      type="button"
+                      onClick={() => removePreference(pref)}
+                      aria-label={`Forget preference: ${pref}`}
+                      className="w-5 h-5 rounded-full text-ruhi-earth hover:bg-ruhi-rose/40
+                                 hover:text-ruhi-deep flex items-center justify-center text-sm leading-none"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {Object.keys(savedCons).length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-1">Weekly caps (hard)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(savedCons).map(([key, value]) => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 bg-ruhi-warm/60 text-ruhi-deep
+                               text-xs rounded-full pl-3 pr-1 py-1"
+                  >
+                    {CONSTRAINT_LABEL[key] || key}: {value}
+                    <button
+                      type="button"
+                      onClick={() => removeConstraint(key)}
+                      aria-label={`Forget cap: ${CONSTRAINT_LABEL[key] || key}`}
+                      className="w-5 h-5 rounded-full text-ruhi-earth hover:bg-ruhi-rose/40
+                                 hover:text-ruhi-deep flex items-center justify-center text-sm leading-none"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Categorized chip list */}
       <div className="mb-6">

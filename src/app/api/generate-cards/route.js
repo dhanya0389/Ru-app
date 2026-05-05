@@ -17,7 +17,7 @@ export async function POST(request) {
     )
   }
 
-  const { profile, phase, energy, cookingMood, kitchen, excludeMeal, pastEntries } = await request.json()
+  const { profile, phase, energy, cookingMood, kitchen, excludeMeal, pastEntries, preferences } = await request.json()
 
   const cookTimeMap = {
     quick: 'under 15 minutes',
@@ -115,9 +115,28 @@ INGREDIENT QUANTITY RULES (critical for macro accuracy):
 - For tiny amounts (spices, salt, lemon squeeze), keep them human ("1 tsp turmeric", "salt to taste").
 - Avoid vague volumes like "1 cup chickpeas" — write "150g cooked chickpeas" instead, since cup-to-gram conversions differ wildly by ingredient density.
 
+PANTRY SHORTCUT HINTS — APPLY AT EVERY ENERGY LEVEL:
+- Scan the user's kitchen for pre-cooked, canned, frozen, or pre-prepped versions of ingredients your meal uses. When one matches, surface it inline as a shortcut tip — don't force the substitution, offer it.
+- Examples:
+  - meal calls for "cooked lentils" + pantry has "canned lentils" → in the \`tip\` field or as the first \`steps\` item: "you have canned lentils on hand — drain and use those instead of cooking from dry."
+  - meal calls for "spinach" + pantry has "frozen spinach" → "frozen spinach in your pantry works — defrost and squeeze dry."
+  - meal calls for "rice" + pantry has "microwave rice pouches" → "your pantry has microwave rice — skip the stove."
+  - meal calls for "chicken" + pantry has "rotisserie chicken" → "rotisserie chicken from your pantry — pull and use cold."
+- Surface the hint in the \`tip\` field (preferred) or as the first \`steps\` entry. NOT in the title. One short sentence, conversational.
+- Skip the hint when no pantry shortcut applies — silence is fine.
+
 Generate personalized daily wellness cards based on the user's profile, cycle phase, energy level, and what's in their kitchen.`
 
   const pastEntriesBlock = formatPastEntries(pastEntries)
+  const preferencesBlock = formatPreferences(preferences)
+  const lowEnergyShortcuts = (typeof energy === 'number' && energy <= 2)
+    ? `\nLOW-ENERGY SHORTCUTS — ACTIVELY USE (the user's energy is ${energy}/5; treat these as first-class ingredients, not cop-outs):
+- Frozen vegetables (frozen spinach, broccoli florets, cauliflower rice, riced broccoli, peas, edamame, stir-fry mixes) — microwave or steam-in-bag straight into the dish. Nutritionally equivalent to fresh and zero prep.
+- Pre-cooked grains (microwave rice / quinoa pouches, pre-cooked lentil pouches, frozen pre-cooked brown rice).
+- Canned legumes (rinsed chickpeas / black beans / lentils) — drain + go.
+- Pre-washed bagged greens, pre-chopped vegetables, rotisserie chicken (diet permitting), frozen fish fillets baked from frozen.
+Prefer a dish built from these over the fresh-prep equivalent. Use grams from the package as listed.`
+    : ''
 
   const userMessage = `Generate my daily cards.
 
@@ -137,7 +156,7 @@ TODAY:
 - Cooking mood: ${cookTimeMap[cookingMood] || '15–30 minutes'}
 - What's in my kitchen: ${kitchen || 'general pantry staples'}
 ${excludeMeal ? `- Do NOT suggest "${excludeMeal}" — give me something different.` : ''}
-${pastEntriesBlock}
+${preferencesBlock}${lowEnergyShortcuts}${pastEntriesBlock}
 
 ⚠️ REMINDER — the meal card must hit 350–430 kcal · 30–35g protein. The math is enforced by USDA on the user's side. NEVER include a whole avocado or 200g+ of any single protein source. BEFORE finalizing the meal: do a quick mental sum of (protein kcal + grain kcal + fat kcal + vegetable kcal). If the total exceeds 430 kcal, REDUCE PORTIONS until it fits.
 
@@ -317,6 +336,18 @@ function formatPastEntries(entries) {
     })
   if (lines.length === 0) return ''
   return `\nPAST NOTES from same phase + day (silent context — do not quote, never say "you mentioned"):\n${lines.join('\n')}`
+}
+
+// Soft preferences extracted from typed prose (persisted in EditPantry).
+// Only used in the meal card — variety constraints don't apply to a single
+// dish. Honor where reasonable; HARD rules (diet, macro target) win.
+function formatPreferences(preferences) {
+  if (!Array.isArray(preferences) || preferences.length === 0) return ''
+  const cleaned = preferences
+    .filter((p) => typeof p === 'string' && p.trim())
+    .map((p) => `- ${p.trim()}`)
+  if (cleaned.length === 0) return ''
+  return `\nUSER PREFERENCES (honor where reasonable — soft rules, hard rules win on conflict):\n${cleaned.join('\n')}`
 }
 
 // Drop anything outside the canonical allowlist; cap at 3 names; preserve order.
