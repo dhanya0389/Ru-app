@@ -27,11 +27,29 @@ export async function POST(request) {
   } = await request.json()
 
   const energyHints = {
-    1: 'User reports VERY LOW energy this week — lean heavily on assembly meals (no real cooking), pre-cooked proteins, batch-prepped components, microwave-friendly dishes. Minimize active stove time. Repeat the same easy dish multiple days.',
-    2: 'User reports LOW energy this week — favor simple recipes (under 20 min active cook time), assembly-style bowls, sheet-pan meals. Allow 1-2 dishes that repeat across multiple days for meal-prep efficiency.',
-    3: 'User reports STEADY energy this week — balanced mix of simple and slightly more involved recipes. Standard cycle-aware meal planning.',
-    4: 'User reports GOOD energy this week — room for one or two more ambitious recipes (more ingredients, longer cook time). Variety welcome.',
-    5: 'User reports HIGH energy this week — open to ambitious cooking, new techniques, complex flavor builds. Use this week to try a recipe that takes more effort.',
+    1: `User reports VERY LOW energy (1/5).
+
+HARD RULES for low energy (apply to every dish you generate):
+- Active hands-on time per dish: ≤ 15 minutes. This is the time the user is ACTIVELY COOKING (chopping, stirring, attending to the stove). It is NOT total cook time.
+- One-pot / set-and-forget cooking IS welcome even if total time is long. A 90-minute slow-roast or one-pot stew where the user puts everything in, sets the temp, and walks away, is FINE — total time can exceed 90 min as long as active hands-on is ≤ 15 min.
+- NO recipes that require constant attention (stir-fries that need flipping every minute, multi-step sauces with reductions, dishes with simultaneous techniques the user must juggle).
+- Ingredient count per dish: ≤ 6 items (loose target — 7-8 is OK if 4+ are no-prep pantry items like spices, oil, salt).
+- Repeat the same easy dish multiple days when possible.
+
+The phrase to internalize: "low energy = low effort, not necessarily low time." A bowl of pre-cooked rice + canned chickpeas + frozen spinach + olive oil + lemon (5 ingredients, 5 min hands-on, 0 min cook) is perfect. So is dump-everything-in-a-pot dal that simmers 60 minutes unattended (5 min hands-on).`,
+
+    2: `User reports LOW energy (2/5).
+
+Same hard rules as energy 1, slightly relaxed:
+- Active hands-on time per dish: ≤ 20 minutes
+- One-pot / set-and-forget cooking welcome (total time unconstrained)
+- NO constant-attention dishes
+- Ingredient count: ≤ 7 items (loose target)
+- 1-2 dishes that repeat across multiple days for meal-prep efficiency`,
+
+    3: 'User reports STEADY energy (3/5). Balanced mix of simple and slightly more involved recipes. Standard cycle-aware meal planning. No special caps.',
+    4: 'User reports GOOD energy (4/5). Room for one or two more ambitious recipes (more ingredients, longer active cook time). Variety welcome.',
+    5: 'User reports HIGH energy (5/5). Open to ambitious cooking, new techniques, complex flavor builds. Use this week to try a recipe that takes more effort.',
   }
 
   // Embed practitioner-attributed rules for every phase represented in the
@@ -338,6 +356,15 @@ BEFORE FINALIZING EACH DISH: do a quick mental sum of (animal/plant protein kcal
         dish.macros = formatMacros(calculated)
         dish.calories = formatCalories(calculated)
         dish.macrosSource = 'usda'
+      } else {
+        // USDA couldn't price this dish (no ingredients matched, or sanity
+        // check tripped). HIDE macros entirely instead of falling through to
+        // Haiku's guess — Dhanya's call: arbitrary numbers labeled "EST" are
+        // worse than no number, because users calibrate their meals off the
+        // displayed value. Better silent gap than misleading number.
+        dish.macros = null
+        dish.calories = null
+        dish.macrosSource = 'unverified'
       }
     }))
 
@@ -370,7 +397,10 @@ BEFORE FINALIZING EACH DISH: do a quick mental sum of (animal/plant protein kcal
         menu[cat],
         cat,
         validationCtx,
-        { maxRetries: 3 }
+        // No effective cap — retries are parallel within a category, and
+        // letting all severe failures retry beats letting some ship over-spec.
+        // Library default of 8 is just a runaway guard.
+        {}
       )
       validationAudit.push({ category: cat, entries: audit })
     }
@@ -388,10 +418,14 @@ BEFORE FINALIZING EACH DISH: do a quick mental sum of (animal/plant protein kcal
       counts: citationCounts,
     })
 
-    // Compose the full WeeklyPlan response with the day-phase metadata
+    // Compose the full WeeklyPlan response with the day-phase metadata.
+    // Saving energy here lets downstream surfaces (the prep planner's time
+    // picker, Daily Check-in's smart-default) honor what the user said when
+    // they planned the week, without re-prompting.
     const result = {
       weekOf: weekDays[0]?.date,
       days: weekDays,
+      energy: typeof energy === 'number' ? energy : 3,
       menu,
       assignments: toolUse.input.assignments,
       shoppingList: toolUse.input.shoppingList,

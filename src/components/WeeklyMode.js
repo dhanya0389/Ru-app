@@ -214,7 +214,14 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
                   id="start-date"
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value)
+                    // Different week → wipe any leftover additions text from
+                    // the previous generation. The user's additions for last
+                    // week are already saved into the canonical pantry; the
+                    // textbox is meant for THIS week's additions only.
+                    setPantry('')
+                  }}
                   className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-earth/40
                              focus:border-ruhi-deep focus:outline-none text-sm text-ruhi-deep"
                 />
@@ -225,7 +232,10 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
                   id="end-date"
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e) => {
+                    setEndDate(e.target.value)
+                    setPantry('')
+                  }}
                   min={startDate}
                   max={addDaysISO(startDate, 13)}
                   className="w-full p-2.5 rounded-xl bg-white/70 border border-ruhi-earth/40
@@ -420,7 +430,15 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
         open={actionsOpen}
         onClose={() => setActionsOpen(false)}
         plan={plan}
-        onRegenerate={() => { clearWeeklyPlan(); setPlan(null); }}
+        onRegenerate={() => {
+          clearWeeklyPlan()
+          setPlan(null)
+          // Reset the additions textbox — what they typed is already saved
+          // into pantry; carrying it across into the next regen leads to
+          // confused state. If they want it again, they retype.
+          setPantry('')
+        }}
+        onOpenPrep={() => onNavigate?.('prep')}
       />
     </div>
   )
@@ -557,7 +575,11 @@ function MenuSection({ title, items, onOpenRecipe }) {
               <h4 className="font-display text-base text-ruhi-deep leading-tight">{item.title}</h4>
               <span className="text-xs text-ruhi-earth flex-shrink-0">{item.cookTime}</span>
             </div>
-            <p className="text-xs text-ruhi-earth mb-1">{item.macros}{item.calories ? ` · ${item.calories}` : ''}</p>
+            {item.macros || item.calories ? (
+              <p className="text-xs text-ruhi-earth mb-1">{item.macros}{item.calories ? ` · ${item.calories}` : ''}</p>
+            ) : (
+              <p className="text-xs text-ruhi-earth/60 italic mb-1">Macros pending — couldn&apos;t verify nutrition data</p>
+            )}
             <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
               {item.phaseFit?.join(' · ')}
             </p>
@@ -586,7 +608,11 @@ function RecipeView({ item, onBack, onShowSources }) {
         <span>{item.cookTime}</span>
         {item.calories && <><span aria-hidden="true">·</span><span>{item.calories}</span></>}
       </div>
-      <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
+      {item.macros ? (
+        <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
+      ) : (
+        <p className="text-xs text-ruhi-earth/60 italic mb-2">Macros pending — couldn&apos;t verify nutrition data via USDA. Treat portion sizes as a guide.</p>
+      )}
       {item.phaseFit?.length > 0 && (
         <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-2">
           Best for: {item.phaseFit.join(' · ')}

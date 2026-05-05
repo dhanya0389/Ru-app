@@ -164,69 +164,133 @@ const REJECT_IF_PRESENT = [
 
 // Words to STRIP from the search query before sending to USDA — they confuse
 // matching since USDA descriptions don't use them (USDA uses "raw" not "fresh").
-const STRIP_FROM_QUERY = /\b(organic|free.range|grass.fed|wild|farmed|low.sodium|unsweetened|plain|fresh)\b/g
+// Expanded May 4: more prep adjectives so queries like "extra firm tofu" or
+// "lightly toasted hemp seeds" reduce to "tofu" / "hemp seeds" — those have
+// USDA hits, the modifier-laden phrases don't.
+const STRIP_FROM_QUERY = /\b(organic|free.?range|grass.?fed|wild|farmed|low.?sodium|unsweetened|plain|fresh|extra.?firm|firm|silken|soft|hard|raw|cooked|dry|dried|whole|ground|crumbled|crushed|chopped|diced|sliced|minced|grated|toasted|lightly|roughly|finely|freshly|lightly.?toasted|roasted|baked|steamed|boiled|softened|unsalted|salted|frozen|canned|jarred|store.?bought|home.?made|homemade|low.?fat|reduced.?fat|nonfat|non.?fat|full.?fat|skinless|boneless|seedless|pitted|peeled|chilled|warmed|ripe|unripe|small|medium|large)\b/gi
 
 function cleanQuery(name) {
   return name
     .replace(STRIP_FROM_QUERY, '')
+    .replace(/\s+/g, ' ')
     .split(/\s+or\s+/)[0]   // "chicken or vegetable broth" → "chicken broth"
     .trim()
 }
 
-function isReasonableMatch(food, originalQuery) {
-  const desc = (food.description || '').toLowerCase()
-  // If the description contains a reject word, AND the user query doesn't
-  // contain that same word, treat it as a likely mismatch.
-  for (const word of REJECT_IF_PRESENT) {
-    if (desc.includes(word) && !originalQuery.toLowerCase().includes(word.replace(',', ''))) {
-      return false
-    }
+// Build a list of progressively-broader query variants to try when the
+// initial search misses. "extra firm tofu" already gets cleaned to "tofu",
+// but compound phrases like "Greek yogurt unsweetened plain" → "Greek yogurt"
+// → "yogurt" let us fall back to broader hits.
+function queryVariants(name) {
+  const cleaned = cleanQuery(name)
+  if (!cleaned) return []
+  const variants = [cleaned]
+  // Drop adjectives one word at a time from the LEFT (cuisine prefixes like
+  // "Greek yogurt" → "yogurt"; "smoked salmon" → "salmon")
+  const words = cleaned.split(/\s+/).filter(Boolean)
+  for (let i = 1; i < words.length; i++) {
+    const broader = words.slice(i).join(' ')
+    if (broader && !variants.includes(broader)) variants.push(broader)
   }
-  return true
+  // Also try the LAST word alone as a final fallback ("hemp seeds" → "hemp"
+  // already covered by the loop above; this handles edge cases).
+  return variants
 }
 
-// Search USDA. Two passes: Foundation (canonical foods) first, SR Legacy as
-// fallback. Filters out obvious mismatches (breaded/processed forms when
-// user asked for a basic ingredient).
-async function searchUSDA(name, apiKey) {
-  const query = cleanQuery(name)
-  if (!query) return null
+// Score a USDA candidate against the original query — higher = better match.
+// Replaces the prior "first reasonable match" logic, which sometimes picked
+// a mediocre Foundation entry when a much better SR Legacy entry existed.
+//
+// Scoring rules:
+//   +10 if the description starts with the query word (best — exact root)
+//   +5  for each query word found in the description (deeper relevance)
+//   -8  if a REJECT_IF_PRESENT word is in description but not in query
+//   -3  per extra prep modifier in description ("with sauce", "fried")
+//   -2  if it's a branded / commercial form when query is generic
+function scoreCandidate(food, query) {
+  const desc = (food.description || '').toLowerCase()
+  const queryLower = query.toLowerCase()
+  const queryWords = queryLower.split(/\s+/).filter(Boolean)
+  let score = 0
 
-  async function tryDataType(dataType) {
+  // Exact root start = strong signal
+  if (queryWords[0] && desc.startsWith(queryWords[0])) score += 10
+  // Each query word in description
+  queryWords.forEach((w) => {
+    if (w.length > 2 && desc.includes(w)) score += 5
+  })
+  // Reject penalties
+  for (const word of REJECT_IF_PRESENT) {
+    if (desc.includes(word) && !queryLower.includes(word.replace(',', ''))) {
+      score -= 8
+    }
+  }
+  // Extra modifier penalty — ", with X" ", and Y" suggests the entry is a
+  // composite dish, not a base ingredient.
+  const modifierCount = (desc.match(/,\s*\w+/g) || []).length
+  score -= modifierCount * 1.5
+  // Branded foods often have inflated/processed nutrient profiles
+  if (food.brandOwner || food.brandName) score -= 2
+
+  return score
+}
+
+// Search USDA. Three layers of fallback:
+//   1. For each query variant, search Foundation (canonical raw foods)
+//   2. For each query variant, search SR Legacy (broader, includes cooked)
+//   3. Pick the highest-scoring candidate across all variants + dataTypes
+async function searchUSDA(name, apiKey) {
+  const variants = queryVariants(name)
+  if (variants.length === 0) return null
+
+  async function fetchCandidates(query, dataType) {
     const url = `${USDA_API}?query=${encodeURIComponent(query)}&pageSize=5&dataType=${encodeURIComponent(dataType)}&api_key=${apiKey}`
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
-      if (!res.ok) return null
+      if (!res.ok) return []
       const data = await res.json()
-      const candidates = data.foods || []
-      // Pick first reasonable match
-      const food = candidates.find((f) => isReasonableMatch(f, query)) || candidates[0]
-      if (!food) return null
-      const find = (id) => food.foodNutrients?.find(n => n.nutrientId === id)?.value || 0
-      // Find calories in whichever ID the dataset uses (Foundation vs SR Legacy)
-      const findCalories = () => {
-        for (const id of CALORIE_IDS) {
-          const v = find(id)
-          if (v > 0) return v
-        }
-        return 0
-      }
-      return {
-        proteinPer100g: find(NUTRIENT.protein),
-        carbsPer100g: find(NUTRIENT.carbs),
-        fatPer100g: find(NUTRIENT.fat),
-        caloriesPer100g: findCalories(),
-        matchedAs: food.description,
-      }
-    } catch (err) {
-      return null
+      return (data.foods || []).map((f) => ({ ...f, _query: query, _dataType: dataType }))
+    } catch {
+      return []
     }
   }
 
-  // Foundation first (raw / canonical), then SR Legacy fallback.
-  const foundationMatch = await tryDataType('Foundation')
-  if (foundationMatch) return foundationMatch
-  return await tryDataType('SR Legacy')
+  // Try the most specific variant first; only broaden if needed. This keeps
+  // us from getting bad-but-broad matches when a precise hit was available.
+  for (const variant of variants) {
+    // For each variant, try Foundation first, then SR Legacy
+    const foundation = await fetchCandidates(variant, 'Foundation')
+    const srLegacy = await fetchCandidates(variant, 'SR Legacy')
+    const candidates = [...foundation, ...srLegacy]
+    if (candidates.length === 0) continue
+
+    // Score and pick the best
+    const scored = candidates
+      .map((c) => ({ food: c, score: scoreCandidate(c, variant) }))
+      .sort((a, b) => b.score - a.score)
+    const best = scored[0]
+    // Only accept if the score is positive — negative means worse than nothing
+    if (!best || best.score < 0) continue
+
+    const food = best.food
+    const find = (id) => food.foodNutrients?.find(n => n.nutrientId === id)?.value || 0
+    const findCalories = () => {
+      for (const id of CALORIE_IDS) {
+        const v = find(id)
+        if (v > 0) return v
+      }
+      return 0
+    }
+    return {
+      proteinPer100g: find(NUTRIENT.protein),
+      carbsPer100g: find(NUTRIENT.carbs),
+      fatPer100g: find(NUTRIENT.fat),
+      caloriesPer100g: findCalories(),
+      matchedAs: food.description,
+      matchedVia: `${variant} (${food._dataType})`,
+    }
+  }
+  return null
 }
 
 /**
