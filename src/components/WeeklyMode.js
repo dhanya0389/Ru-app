@@ -10,6 +10,10 @@ import {
   mergePantryChips,
 } from '@/lib/storage'
 import {
+  parsePantryText,
+  combinePantryContext,
+} from '@/lib/pantryParse'
+import {
   getWeeklyPlan,
   saveWeeklyPlan,
   clearWeeklyPlan,
@@ -147,14 +151,32 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
     setGenerating(true)
     setError(null)
     setTipIndex(0)
-    // Additive merge: textbox additions fold into the saved pantry, deduped.
+    // Smart-parse the textbox — items go to pantry; preferences + constraints
+    // are TRANSIENT (only this week's gen, never saved). The simple-shape path
+    // skips the network entirely for trivial comma lists, so a "salmon, kefir"
+    // input has no extra latency.
+    let parsed
+    try {
+      parsed = await parsePantryText(pantry)
+    } catch (err) {
+      console.warn('parsePantryText failed in WeeklyMode, falling back', err)
+      parsed = { items: parsePantryChips(pantry), preferences: [], constraints: {} }
+    }
+    // Additive merge: parsed items fold into the saved pantry, deduped.
     // The merged set is what the API uses AND what we persist (the saved
     // pantry only grows here, never shrinks — removal lives in the chip
     // editor). Same shape as before — comma-joined free-text for back-compat.
     const mergedPantry = joinPantryChips(
-      mergePantryChips(parsePantryChips(getPantry()), parsePantryChips(pantry))
+      mergePantryChips(parsePantryChips(getPantry()), parsed.items)
     )
     savePantry(mergedPantry)
+    // Combine persisted (from EditPantry) with this-week-only transient.
+    // Transient wins on conflicts so a "use 3 proteins this week" overrides
+    // a saved maxProteins=2 just for this generation.
+    const { preferences, constraints } = combinePantryContext({
+      preferences: parsed.preferences,
+      constraints: parsed.constraints,
+    })
 
     const cycleLengthMap = { '24–26': 25, '27–29': 28, '30–32': 31, 'It varies': 28 }
     const cycleLengthDays = cycleLengthMap[profile.cycleLength] || 28
@@ -171,6 +193,8 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
           energy,
           supplements: profile.supplements || [],
           seedCycling: optIns.seedCycling,
+          preferences,
+          constraints,
         }),
       })
       if (!res.ok) {
@@ -273,7 +297,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
             </div>
             <VoiceInput
               label="Anything new to add"
-              placeholder="Optional — e.g. salmon, kefir..."
+              placeholder="Items, preferences, or weekly caps — e.g. 'salmon, just 2 proteins'"
               initialValue={pantry}
               onResult={(text) => setPantry(text)}
             />
@@ -319,6 +343,20 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
             {error}
           </p>
         )}
+
+        {/* Commit-time pantry nudge — most users haven't built the muscle
+            memory to keep the pantry current. One italic line right before
+            the Plan button, with the count + a tap-target to the editor. */}
+        <p className="text-[11px] italic text-ruhi-earth/80 mb-2 text-center">
+          Pantry has <span className="text-ruhi-deep not-italic font-medium">{savedPantryCount}</span> {savedPantryCount === 1 ? 'item' : 'items'} — still current?{' '}
+          <button
+            type="button"
+            onClick={() => onNavigate?.('pantry')}
+            className="not-italic text-ruhi-deep hover:text-ruhi-earth underline underline-offset-2"
+          >
+            Edit
+          </button>
+        </p>
 
         <button
           onClick={generatePlan}
