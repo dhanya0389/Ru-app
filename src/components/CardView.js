@@ -6,7 +6,7 @@ import { findRelevantEntries } from '@/lib/journal'
 import { getPantryPreferences } from '@/lib/pantryParse'
 import NavMenu from '@/components/NavMenu'
 import VoiceJournal from '@/components/VoiceJournal'
-import { NutritionInfoIcon } from '@/components/MacroBadge'
+import { UsdaBadge, NutritionInfoIcon } from '@/components/MacroBadge'
 
 // LoremFlickr serves Flickr Creative Commons photos by tag, no API key.
 // Loose tag matching pulls non-food photos when ingredient names overlap with
@@ -446,7 +446,10 @@ function ExpandedMealCard({ meal, onSurprise, onShowSources }) {
         )}
       </div>
       {meal.macros ? (
-        <p className="text-sm text-ruhi-earth mb-3">{meal.macros}</p>
+        <p className="text-sm text-ruhi-earth mb-3 flex items-center gap-1.5 flex-wrap">
+          <span>{meal.macros}</span>
+          <UsdaBadge />
+        </p>
       ) : (
         <p className="text-xs text-ruhi-earth/60 mb-3 flex items-center gap-1.5">
           <NutritionInfoIcon />
