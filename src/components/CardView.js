@@ -453,7 +453,7 @@ function ExpandedMealCard({ meal, onSurprise, onShowSources }) {
       ) : (
         <p className="text-xs text-ruhi-earth/60 mb-3 flex items-center gap-1.5">
           <NutritionInfoIcon />
-          <span>Nutrition info</span>
+          <span>Nutrition info pending verification</span>
         </p>
       )}
 

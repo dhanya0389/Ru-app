@@ -645,7 +645,7 @@ function MenuSection({ title, items, onOpenRecipe }) {
             ) : (
               <p className="text-xs text-ruhi-earth/60 mb-1 flex items-center gap-1">
                 <NutritionInfoIcon />
-                <span>Nutrition info</span>
+                <span>Nutrition info pending verification</span>
               </p>
             )}
             <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
@@ -684,7 +684,7 @@ function RecipeView({ item, onBack, onShowSources }) {
       ) : (
         <p className="text-xs text-ruhi-earth/60 mb-2 flex items-center gap-1.5">
           <NutritionInfoIcon />
-          <span>Nutrition info</span>
+          <span>Nutrition info pending verification</span>
         </p>
       )}
       {item.phaseFit?.length > 0 && (
