@@ -26,6 +26,8 @@ import VoiceInput from '@/components/VoiceInput'
 import PantryImageUpload from '@/components/PantryImageUpload'
 import SendShoppingListSheet from '@/components/SendShoppingListSheet'
 import PlanActionsSheet from '@/components/PlanActionsSheet'
+import ExportPlanSheet from '@/components/ExportPlanSheet'
+import { UsdaBadge, NutritionInfoIcon } from '@/components/MacroBadge'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -113,6 +115,7 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
   const [expandedRecipe, setExpandedRecipe] = useState(null)
   // "..." actions sheet visibility — Print / Email / Share / Regenerate.
   const [actionsOpen, setActionsOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
     setProfile(getProfile())
@@ -420,21 +423,36 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
               {formatDate(plan.days[0].date)} – {formatDate(plan.days[plan.days.length - 1].date)}
             </h2>
           </div>
-          <button
-            data-no-print
-            type="button"
-            onClick={() => setActionsOpen(true)}
-            aria-label="Plan actions — print, email, share, or regenerate"
-            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/70 border border-white/60
-                       text-ruhi-earth hover:text-ruhi-deep hover:bg-white hover:shadow-sm
-                       transition-all flex items-center justify-center"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
+          <div data-no-print className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              aria-label="Export plan — print, email, share"
+              className="w-9 h-9 rounded-full bg-white/70 border border-white/60
+                         text-ruhi-earth hover:text-ruhi-deep hover:bg-white hover:shadow-sm
+                         transition-all flex items-center justify-center"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActionsOpen(true)}
+              aria-label="Plan actions — Sunday prep or regenerate"
+              className="w-9 h-9 rounded-full bg-white/70 border border-white/60
+                         text-ruhi-earth hover:text-ruhi-deep hover:bg-white hover:shadow-sm
+                         transition-all flex items-center justify-center"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+            </button>
+          </div>
         </div>
         <PhaseProgression days={plan.days} />
       </div>
@@ -463,6 +481,12 @@ export default function WeeklyMode({ menuOpen, setMenuOpen, onNavigate }) {
 
       {/* Regenerate moved into the "..." actions sheet — keeps the bottom of
           the plan clean and groups all plan-level actions in one place. */}
+
+      <ExportPlanSheet
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        plan={plan}
+      />
 
       <PlanActionsSheet
         open={actionsOpen}
@@ -507,7 +531,7 @@ function TabButton({ active, onClick, children }) {
       onClick={onClick}
       role="tab"
       aria-selected={active}
-      className={`flex-1 py-2 rounded-full text-sm transition-all duration-200
+      className={`flex-1 py-2.5 min-h-[44px] rounded-full text-sm transition-all duration-200
         ${active
           ? 'bg-ruhi-deep text-ruhi-cream shadow-sm'
           : 'text-ruhi-earth hover:text-ruhi-deep hover:bg-white/30'
@@ -614,9 +638,15 @@ function MenuSection({ title, items, onOpenRecipe }) {
               <span className="text-xs text-ruhi-earth flex-shrink-0">{item.cookTime}</span>
             </div>
             {item.macros || item.calories ? (
-              <p className="text-xs text-ruhi-earth mb-1">{item.macros}{item.calories ? ` · ${item.calories}` : ''}</p>
+              <p className="text-xs text-ruhi-earth mb-1 flex items-center gap-1.5 flex-wrap">
+                <span>{item.macros}{item.calories ? ` · ${item.calories}` : ''}</span>
+                <UsdaBadge />
+              </p>
             ) : (
-              <p className="text-xs text-ruhi-earth/60 italic mb-1">Macros pending — couldn&apos;t verify nutrition data</p>
+              <p className="text-xs text-ruhi-earth/60 mb-1 flex items-center gap-1">
+                <NutritionInfoIcon />
+                <span>Nutrition info</span>
+              </p>
             )}
             <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
               {item.phaseFit?.join(' · ')}
@@ -647,9 +677,15 @@ function RecipeView({ item, onBack, onShowSources }) {
         {item.calories && <><span aria-hidden="true">·</span><span>{item.calories}</span></>}
       </div>
       {item.macros ? (
-        <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
+        <p className="text-sm text-ruhi-earth mb-2 flex items-center gap-1.5 flex-wrap">
+          <span>{item.macros}</span>
+          <UsdaBadge />
+        </p>
       ) : (
-        <p className="text-xs text-ruhi-earth/60 italic mb-2">Macros pending — couldn&apos;t verify nutrition data via USDA. Treat portion sizes as a guide.</p>
+        <p className="text-xs text-ruhi-earth/60 mb-2 flex items-center gap-1.5">
+          <NutritionInfoIcon />
+          <span>Nutrition info</span>
+        </p>
       )}
       {item.phaseFit?.length > 0 && (
         <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80 mb-2">

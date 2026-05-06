@@ -207,6 +207,9 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           dotClass="bg-ruhi-sage"
           label="Between cooking"
           subtitle="Fill the gaps while the heat is doing its work."
+          count={prep.between.length}
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-4">
             {prep.between.map((task, i) => (
@@ -232,6 +235,9 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           dotClass="bg-ruhi-peach"
           label="Assembly"
           subtitle="Cold steps at the end — jars, salads, dressings."
+          count={prep.assembly.length}
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-4">
             {prep.assembly.map((task, i) => (
@@ -257,6 +263,9 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           dotClass="bg-ruhi-earth"
           label="Storage"
           subtitle="Where things go and how long they last."
+          count={prep.storage.length}
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-2.5">
             {prep.storage.map((s, i) => (
@@ -279,6 +288,9 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
           dotClass="bg-ruhi-deep"
           label="Notes"
           subtitle={null}
+          count={prep.tips.length}
+          collapsible
+          defaultOpen={false}
         >
           <ul className="space-y-2">
             {prep.tips.map((tip, i) => (
@@ -300,15 +312,48 @@ export default function PrepPlanScreen({ onBack, menuOpen, setMenuOpen, onNaviga
   )
 }
 
-function Section({ dotClass, label, subtitle, children }) {
+function Section({ dotClass, label, subtitle, count, children, collapsible = false, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  if (!collapsible) {
+    return (
+      <section className="mb-6">
+        <header className="mb-3 flex items-center gap-2">
+          <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${dotClass}`} />
+          <h3 className="text-sm uppercase tracking-widest text-ruhi-deep font-medium">{label}</h3>
+        </header>
+        {subtitle && <p className="text-xs text-ruhi-earth/80 mb-3 px-1">{subtitle}</p>}
+        {children}
+      </section>
+    )
+  }
+
   return (
-    <section className="mb-6">
-      <header className="mb-3 flex items-center gap-2">
+    <section className="mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2 px-1 py-2 rounded-lg
+                   hover:bg-white/40 transition-colors text-left"
+      >
         <span aria-hidden="true" className={`w-2.5 h-2.5 rounded-full ${dotClass}`} />
-        <h3 className="text-sm uppercase tracking-widest text-ruhi-deep font-medium">{label}</h3>
-      </header>
-      {subtitle && <p className="text-xs text-ruhi-earth/80 mb-3 px-1">{subtitle}</p>}
-      {children}
+        <h3 className="text-sm uppercase tracking-widest text-ruhi-deep font-medium flex-1">{label}</h3>
+        {typeof count === 'number' && (
+          <span className="text-[11px] text-ruhi-earth/70 tabular-nums">({count})</span>
+        )}
+        <span aria-hidden="true" className={`text-ruhi-earth/70 transition-transform ${open ? 'rotate-180' : ''}`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </button>
+      {open && (
+        <div className="mt-2 mb-3">
+          {subtitle && <p className="text-xs text-ruhi-earth/80 mb-3 px-1">{subtitle}</p>}
+          {children}
+        </div>
+      )}
     </section>
   )
 }

@@ -1,25 +1,21 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { printPlan, emailPlan, sharePlan } from '@/lib/exportPlan'
 
 /**
- * Bottom-sheet for plan-level actions on Weekly Mode. Replaces the prior
- * scattering of buttons (Regenerate at the bottom of the plan, Send to
- * grocery inside Shopping tab) with one consolidated action set behind a
- * "..." button in the header. Cuts header clutter while keeping every
- * action one tap away.
+ * Bottom-sheet for state-changing plan actions: Plan Sunday prep + Regenerate.
+ * Passive output (Print / Email / Share) lives in the sibling
+ * ExportPlanSheet so the two cognitive buckets (export vs. modify) don't
+ * mix in one menu.
  *
  * Actions:
- *   - Print / Save as PDF — window.print() with the print stylesheet
- *   - Email plan          — mailto: launcher with formatted text body
- *   - Share               — navigator.share (mobile only)
- *   - Regenerate          — clears the plan, returns to the planning form
+ *   - Plan Sunday prep — expands to a time picker, then navigates to PrepPlanScreen
+ *   - Regenerate       — clears the plan, returns to the planning form
  *
  * Props:
  *   open          — boolean
  *   onClose       — () => void
- *   plan          — current WeeklyPlan
+ *   plan          — current WeeklyPlan (used for the energy default on prep time)
  *   onRegenerate  — () => void, called when user picks Regenerate
  *   onOpenPrep    — () => void, called when user picks Plan Sunday prep
  */
@@ -36,20 +32,11 @@ function defaultPrepTimeFor(energy) {
 
 export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, onOpenPrep }) {
   const sheetRef = useRef(null)
-  const [shareSupported, setShareSupported] = useState(false)
-  const [shareError, setShareError] = useState(null)
   // Prep section expansion + selected time. When expanded, the row swaps
   // from a single tap-to-navigate button into a small inline panel with
   // time pills + continue button. NOT a popup — popups can be blocked.
   const [prepExpanded, setPrepExpanded] = useState(false)
   const [prepMinutes, setPrepMinutes] = useState(() => defaultPrepTimeFor(plan?.energy))
-
-  // Feature-detect navigator.share on mount (client-only).
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      setShareSupported(true)
-    }
-  }, [])
 
   // Close on outside click + Escape.
   useEffect(() => {
@@ -77,34 +64,12 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
   // may have re-planned the week with different energy since last open.
   useEffect(() => {
     if (open) {
-      setShareError(null)
       setPrepExpanded(false)
       setPrepMinutes(defaultPrepTimeFor(plan?.energy))
     }
   }, [open, plan?.energy])
 
   if (!open) return null
-
-  function handlePrint() {
-    onClose()
-    // Defer to next tick so the sheet is gone before the print dialog
-    // captures the page (otherwise the sheet would show up in the PDF).
-    setTimeout(printPlan, 50)
-  }
-
-  function handleEmail() {
-    emailPlan(plan)
-    onClose()
-  }
-
-  async function handleShare() {
-    const result = await sharePlan(plan)
-    if (result.ok || result.reason === 'cancelled') {
-      onClose()
-    } else {
-      setShareError('Sharing failed on this device. Try Email instead.')
-    }
-  }
 
   function handleRegenerate() {
     onClose()
@@ -160,40 +125,7 @@ export default function PlanActionsSheet({ open, onClose, plan, onRegenerate, on
           </button>
         </div>
 
-        <div className="px-5 pb-2">
-          <h3 className="text-[10px] uppercase tracking-widest text-ruhi-earth mb-2">
-            Export
-          </h3>
-          <div className="flex flex-col gap-2">
-            <ActionRow
-              icon={<PrintIcon />}
-              label="Print / Save as PDF"
-              hint="Opens your browser's print dialog. Pick 'Save as PDF' from there."
-              onClick={handlePrint}
-            />
-            <ActionRow
-              icon={<MailIcon />}
-              label="Email plan"
-              hint="Opens your mail app with the plan in the body."
-              onClick={handleEmail}
-            />
-            {shareSupported && (
-              <ActionRow
-                icon={<ShareIcon />}
-                label="Share..."
-                hint="Send via your phone's share sheet."
-                onClick={handleShare}
-              />
-            )}
-          </div>
-          {shareError && (
-            <p role="alert" className="text-xs text-ruhi-deep bg-ruhi-rose/30 rounded-md px-3 py-2 mt-2">
-              {shareError}
-            </p>
-          )}
-        </div>
-
-        <div className="px-5 pt-4 pb-3">
+        <div className="px-5 pt-1 pb-3">
           <h3 className="text-[10px] uppercase tracking-widest text-ruhi-earth mb-2">
             Prep
           </h3>
@@ -298,37 +230,6 @@ function Chevron({ expanded }) {
       className={`text-ruhi-earth/70 transition-transform ${expanded ? 'rotate-180' : ''}`}
     >
       <polyline points="6 9 12 15 18 9" />
-    </svg>
-  )
-}
-
-function PrintIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 6 2 18 2 18 9" />
-      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-      <rect x="6" y="14" width="12" height="8" />
-    </svg>
-  )
-}
-
-function MailIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      <polyline points="22,6 12,13 2,6" />
-    </svg>
-  )
-}
-
-function ShareIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-      <line x1="15.41" y1="6.51" x2="8.59" y2="11.49" />
     </svg>
   )
 }

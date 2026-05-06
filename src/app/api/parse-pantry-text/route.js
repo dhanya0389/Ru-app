@@ -71,16 +71,25 @@ PREFERENCES:
 - "I want eggs every morning" → preferences: ["wants eggs every morning"]; items: ["eggs"]
 - "I prefer Mediterranean" → preferences: ["prefers Mediterranean cuisine"]; items: []
 
-CONSTRAINTS — numeric variety caps for the WHOLE WEEK:
-- maxProteins: max distinct protein sources across the menu (e.g. salmon + tofu = 2)
-- maxCarbs: max distinct carb sources (e.g. rice + sweet potato = 2)
-- maxVegetables: max distinct vegetables
-- maxFruits: max distinct fruits
-- maxFats: max distinct fat sources (oils + nuts + seeds)
-- Snacks count separately and aren't constrained — don't infer caps for snacks.
-- ONLY set a cap if the user explicitly says a number ("just 2 proteins", "max 3 veggies", "only 2 carbs"). NEVER guess.
-- If the user says "keep it simple" without a number → no constraint. Capture it as a PREFERENCE instead ("wants simple meals").
+CONSTRAINTS — numeric variety caps for the week:
+- maxProteins, maxCarbs, maxVegetables, maxFruits, maxFats — each is a single integer for "max distinct sources of this nutrient across the menu". The downstream meal generator interprets "distinct" in the full context of the user's preferences (casual intent, not strict taxonomy). Your job here is to capture the user's number cleanly.
+
+WHEN TO USE A CAP vs. WHEN TO USE A PREFERENCE:
+The cap field and the preferences array are NOT mutually exclusive — input can produce both simultaneously when the user gives multiple signals.
+- BARE NUMBER ("just 2 proteins", "max 3 veggies", "only 2 carbs", "i need 3 protein options") → set the cap.
+- NUMBER SCOPED PER MEAL SEGMENT ("1 carb for breakfast, 2 for lunch and dinner") → do NOT set the cap field. Capture the full scoped intent as a preference instead, e.g. preferences: ["wants 1 distinct carb at breakfast and 2 across lunch + dinner"]. The downstream prompt honors scoped preferences literally.
+- NAMED ITEM TO INCLUDE ("Mahi Mahi must be one of the proteins", "eggs every morning") → preference. Item-level locks belong in preferences.
+- FROZEN / PREP-STYLE ("one frozen vegetable", "include rotisserie chicken") → preference.
+- QUALITATIVE ("keep it simple", "more variety") → preference.
+
+When inputs combine multiple signals (e.g. "Mahi Mahi must be one of the proteins and i need 3 protein options"), capture EACH signal in its appropriate field — the named item as a preference, the bare number as a cap. Both signals reinforce each other downstream.
+
+- ONLY set a cap if the user states a bare integer (no scope, can be combined with named items). NEVER guess.
 - Omit (null) any cap the user didn't mention.
+
+Definitions to keep in mind while parsing (the downstream generator uses these too):
+- "Proteins" in casual user speech = meat-style mains (chicken, salmon, fish, beef, pork, turkey, lamb, tofu, tempeh, seitan). Eggs, dairy proteins (yogurt, cottage cheese, paneer, kefir), and legumes (lentils, chickpeas, beans) are NOT counted by default.
+- Snacks count separately and are deliberately unconstrained.
 
 OUTPUT GUARANTEES:
 - items, preferences, constraints are ALL required (return empty array / empty object if none).
