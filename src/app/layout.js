@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="font-sans min-h-screen bg-ruhi-cream">
         <ThemeLoader />
-        {children}
+        <main>{children}</main>
         <ThemePicker />
         <Analytics />
       </body>

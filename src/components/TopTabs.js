@@ -37,7 +37,7 @@ function Tab({ active, onClick, children }) {
       onClick={onClick}
       role="tab"
       aria-selected={active}
-      className={`flex-1 py-2 rounded-full text-sm transition-all duration-200
+      className={`flex-1 py-2.5 min-h-[44px] rounded-full text-sm transition-all duration-200
         ${active
           ? 'bg-ruhi-deep text-ruhi-cream shadow-sm'
           : 'text-ruhi-earth hover:text-ruhi-deep hover:bg-white/30'

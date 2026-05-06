@@ -514,34 +514,42 @@ function sanitizePractitioners(list) {
   return cleaned
 }
 
-// Render the user-supplied HARD variety caps into a block the model treats
-// as non-negotiable. "Distinct" counts apply to breakfasts + lunches +
-// dinners — snacks count separately and are deliberately unconstrained
-// (snacks need carb-leaning options in luteal/menstrual that would otherwise
-// blow a 2-carbs cap). Returns '' when no caps are set so we don't pollute
-// the prompt with empty sections.
+// Render the user-supplied HARD variety caps as numeric targets, paired with
+// an INTERPRETATION block that tells the model to read them in the context
+// of the user's full preferences — not as fixed-scope mechanical counts.
+// The cap number is hard; the interpretation of "distinct" follows casual
+// user intent. Returns '' when no caps are set.
 function formatConstraintsBlock(constraints) {
   if (!constraints || typeof constraints !== 'object') return ''
   const lines = []
   if (Number.isInteger(constraints.maxProteins) && constraints.maxProteins >= 1) {
-    lines.push(`- Use AT MOST ${constraints.maxProteins} distinct protein source${constraints.maxProteins === 1 ? '' : 's'} across breakfasts + lunches + dinners (e.g. salmon + tofu = 2).`)
+    lines.push(`- maxProteins: ${constraints.maxProteins}`)
   }
   if (Number.isInteger(constraints.maxCarbs) && constraints.maxCarbs >= 1) {
-    lines.push(`- Use AT MOST ${constraints.maxCarbs} distinct carb source${constraints.maxCarbs === 1 ? '' : 's'} across breakfasts + lunches + dinners (e.g. brown rice + sweet potato = 2).`)
+    lines.push(`- maxCarbs: ${constraints.maxCarbs}`)
   }
   if (Number.isInteger(constraints.maxVegetables) && constraints.maxVegetables >= 1) {
-    lines.push(`- Use AT MOST ${constraints.maxVegetables} distinct vegetable${constraints.maxVegetables === 1 ? '' : 's'} across breakfasts + lunches + dinners.`)
+    lines.push(`- maxVegetables: ${constraints.maxVegetables}`)
   }
   if (Number.isInteger(constraints.maxFruits) && constraints.maxFruits >= 1) {
-    lines.push(`- Use AT MOST ${constraints.maxFruits} distinct fruit${constraints.maxFruits === 1 ? '' : 's'} across breakfasts + lunches + dinners.`)
+    lines.push(`- maxFruits: ${constraints.maxFruits}`)
   }
   if (Number.isInteger(constraints.maxFats) && constraints.maxFats >= 1) {
-    lines.push(`- Use AT MOST ${constraints.maxFats} distinct fat source${constraints.maxFats === 1 ? '' : 's'} (oils, nuts, seeds) across breakfasts + lunches + dinners.`)
+    lines.push(`- maxFats: ${constraints.maxFats}`)
   }
   if (lines.length === 0) return ''
-  return `\nUSER CONSTRAINTS FOR THIS WEEK (HARD rules — count across whole menu):
+  return `\nUSER VARIETY CAPS (HARD numeric targets):
 ${lines.join('\n')}
-(Snacks count separately and are NOT constrained — snacks may use a wider ingredient set.)`
+
+INTERPRETATION (read these caps WITH the user's preferences above as one coherent intent — don't count mechanically):
+- A "distinct protein" in casual user speech = meat-style mains (chicken, salmon, fish, beef, pork, turkey, lamb, tofu, tempeh, seitan). Eggs, dairy proteins (Greek yogurt, cottage cheese, paneer, kefir), and legumes (lentils, chickpeas, beans) typically do NOT count — those read as breakfast / dairy / carb-leaning ingredients in everyday speech.
+- Same intent-first lens for the other caps: a sourdough or oats slice that's locked into breakfast by a user preference doesn't count toward an L+D-focused carb cap; a "must include broccoli" item reserves one slot of the vegetable cap.
+- If a user preference LOCKS part of the menu (e.g. "eggs every morning", "tofu in every dinner", "sourdough toast at breakfast"): exempt the locked items from the cap. Apply the cap to the remaining freely-generated slots so BOTH the lock AND the cap can be honored.
+- If a user preference NAMES a specific item to include (e.g. "Mahi Mahi must be one of the proteins"): that item reserves one slot of the relevant cap; the rest fill naturally.
+- If a user preference SCOPES counts per meal segment (e.g. "1 carb at breakfast, 2 across lunch and dinner"): honor the scoped numbers literally — they override any unscoped cap on that nutrient.
+- Snacks count separately. Caps don't apply to snacks.
+
+The number is HARD. The interpretation of "distinct" is the user's casual intent in the full context of their preferences, not a strict taxonomy.`
 }
 
 // Soft preferences extracted from typed prose ("wants eggs every morning").
