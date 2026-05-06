@@ -27,7 +27,7 @@ import PantryImageUpload from '@/components/PantryImageUpload'
 import SendShoppingListSheet from '@/components/SendShoppingListSheet'
 import PlanActionsSheet from '@/components/PlanActionsSheet'
 import ExportPlanSheet from '@/components/ExportPlanSheet'
-import { NutritionInfoIcon } from '@/components/MacroBadge'
+import { UsdaBadge, NutritionInfoIcon } from '@/components/MacroBadge'
 
 const PHASE_LABEL = {
   menstrual: '🩸 Menstrual',
@@ -638,11 +638,14 @@ function MenuSection({ title, items, onOpenRecipe }) {
               <span className="text-xs text-ruhi-earth flex-shrink-0">{item.cookTime}</span>
             </div>
             {item.macros || item.calories ? (
-              <p className="text-xs text-ruhi-earth mb-1">{item.macros}{item.calories ? ` · ${item.calories}` : ''}</p>
+              <p className="text-xs text-ruhi-earth mb-1 flex items-center gap-1.5 flex-wrap">
+                <span>{item.macros}{item.calories ? ` · ${item.calories}` : ''}</span>
+                <UsdaBadge />
+              </p>
             ) : (
               <p className="text-xs text-ruhi-earth/60 mb-1 flex items-center gap-1">
                 <NutritionInfoIcon />
-                <span>Nutrition info</span>
+                <span>Nutrition info pending verification</span>
               </p>
             )}
             <p className="text-[10px] uppercase tracking-wide text-ruhi-earth/80">
@@ -674,11 +677,14 @@ function RecipeView({ item, onBack, onShowSources }) {
         {item.calories && <><span aria-hidden="true">·</span><span>{item.calories}</span></>}
       </div>
       {item.macros ? (
-        <p className="text-sm text-ruhi-earth mb-2">{item.macros}</p>
+        <p className="text-sm text-ruhi-earth mb-2 flex items-center gap-1.5 flex-wrap">
+          <span>{item.macros}</span>
+          <UsdaBadge />
+        </p>
       ) : (
         <p className="text-xs text-ruhi-earth/60 mb-2 flex items-center gap-1.5">
           <NutritionInfoIcon />
-          <span>Nutrition info</span>
+          <span>Nutrition info pending verification</span>
         </p>
       )}
       {item.phaseFit?.length > 0 && (
