@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useSession, signIn, signOut } from '@/hooks/useSession'
 
 const PROFILE_SECTIONS = [
   { step: 1, label: 'Life stage' },
@@ -47,11 +47,11 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
   const menuRef = useRef(null)
   const [view, setView] = useState('main')
   const [confirmingReset, setConfirmingReset] = useState(false)
-  // Auth.js session — `status` is 'loading' | 'authenticated' | 'unauthenticated'.
-  // Phase 2 first slice: identity-only sign-in (Google). Used to display the
-  // user's name/avatar in the menu. Once Supabase lands, this same identity
-  // will key persisted journal/plan/pantry data across devices.
-  const { data: session, status } = useSession()
+  // Supabase Auth session (PR #28 swap from Auth.js). `status` is
+  // 'loading' | 'authenticated' | 'unauthenticated'. The hook normalizes
+  // Supabase's user_metadata shape into {id, email, name, image} so this
+  // component doesn't have to know about provider-specific details.
+  const { user, status } = useSession()
 
   // Close on outside click
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
                   (avatar + name + Sign out), signed-out (Sign in with
                   Google CTA). Sign-in is identity-only for now; backend
                   persistence comes with Supabase. */}
-              <AccountBlock status={status} session={session} />
+              <AccountBlock status={status} user={user} />
               <Divider />
 
               {/* Top-level destinations */}
@@ -268,9 +268,11 @@ function SectionLabel({ children }) {
 //   - authenticated: avatar + name + Sign out row
 //   - unauthenticated: "Sign in with Google" CTA
 //
-// signIn('google') hands off to Auth.js's Google flow; on return the user
-// lands back at the same URL with a session cookie. signOut() clears it.
-function AccountBlock({ status, session }) {
+// signIn() hands off to Supabase's Google OAuth flow; on return the user
+// lands back at the same URL with the session populated by Supabase's
+// auth-state-change listener (in useSession). signOut() clears the
+// session via Supabase and onAuthStateChange triggers the menu re-render.
+function AccountBlock({ status, user }) {
   if (status === 'loading') {
     return (
       <div className="px-3 py-2 flex items-center gap-2">
@@ -280,15 +282,14 @@ function AccountBlock({ status, session }) {
     )
   }
 
-  if (status === 'authenticated' && session?.user) {
-    const name = session.user.name || session.user.email || 'You'
-    const initial = (name[0] || '?').toUpperCase()
+  if (status === 'authenticated' && user) {
+    const initial = (user.name?.[0] || '?').toUpperCase()
     return (
       <div className="px-2 py-1">
         <div className="flex items-center gap-2 px-1 py-1">
-          {session.user.image ? (
+          {user.image ? (
             <img
-              src={session.user.image}
+              src={user.image}
               alt=""
               referrerPolicy="no-referrer"
               className="w-7 h-7 rounded-full flex-shrink-0 bg-ruhi-warm"
@@ -302,7 +303,7 @@ function AccountBlock({ status, session }) {
               {initial}
             </span>
           )}
-          <span className="text-sm text-ruhi-deep truncate">{name}</span>
+          <span className="text-sm text-ruhi-deep truncate">{user.name}</span>
         </div>
         <button
           type="button"
@@ -321,7 +322,7 @@ function AccountBlock({ status, session }) {
   return (
     <button
       type="button"
-      onClick={() => signIn('google')}
+      onClick={() => signIn()}
       role="menuitem"
       className="w-full text-left rounded-xl px-3 py-2 text-sm text-ruhi-deep
                  hover:bg-white/70 transition-colors flex items-center gap-2"
