@@ -10,15 +10,63 @@ const ERROR_MESSAGES = {
   'aborted': null, // user-initiated, don't show
 }
 
-export default function VoiceInput({ onResult, placeholder = 'Tap the mic or type...', initialValue = '', label = 'Input field' }) {
+// Dedupe overlapping finals from continuous-mode Web Speech recognition.
+// Android Chrome (and some other engines) emit cumulative final results
+// for a single utterance — e.g. "I" → "I don't" → "I don't think" all
+// arrive marked as `isFinal: true`. The previous implementation appended
+// each one with ", ", producing the famous garbled transcript:
+//   "I, I don't, I don't, I don't think, I don't think I, ..."
+//
+// The fix: when one final is a strict prefix of a later final, drop the
+// shorter one. Keep only the longest version of each prefix family.
+// Empty strings filtered out.
+function dedupeFinals(finals) {
+  const cleaned = finals.map((s) => s.trim()).filter(Boolean)
+  return cleaned.filter((f, idx) => {
+    for (let j = idx + 1; j < cleaned.length; j++) {
+      // Case-insensitive prefix check — Android sometimes capitalizes
+      // mid-word ("I, i don't, I don't think") so we normalize before
+      // comparing.
+      const a = f.toLowerCase()
+      const b = cleaned[j].toLowerCase()
+      if (b.startsWith(a)) return false
+    }
+    return true
+  })
+}
+
+export default function VoiceInput({
+  onResult,
+  placeholder = 'Tap the mic or type...',
+  initialValue = '',
+  label = 'Input field',
+  // `tall` mode bumps the textarea height for journal entries — single
+  // sentences want a small box, voice journal entries want room to breathe.
+  tall = false,
+}) {
   const [listening, setListening] = useState(false)
   const [text, setText] = useState(initialValue)
   const [errorMsg, setErrorMsg] = useState(null)
   const recognitionRef = useRef(null)
+  // Live mirror of `text` for read inside event handlers — direct closure
+  // captures get stale across recognition restarts.
+  const textRef = useRef(initialValue)
+  // Locked-in transcript from BEFORE the current speech-recognition
+  // session. Updated when recognition restarts mid-session (silence
+  // timeout). Anything in event.results during the active session is
+  // appended to this base.
+  const baseTextRef = useRef(initialValue)
 
   useEffect(() => {
-    if (initialValue) setText(initialValue)
+    if (initialValue) {
+      setText(initialValue)
+      textRef.current = initialValue
+    }
   }, [initialValue])
+
+  useEffect(() => {
+    textRef.current = text
+  }, [text])
 
   // Clean up on unmount
   useEffect(() => {
@@ -28,6 +76,13 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
       }
     }
   }, [])
+
+  function commitText(next) {
+    const cleaned = next.replace(/\s+/g, ' ').trim()
+    setText(cleaned)
+    textRef.current = cleaned
+    onResult(cleaned)
+  }
 
   function startListening() {
     setErrorMsg(null)
@@ -39,32 +94,36 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
 
-    // Keep listening until user stops it
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-US'
 
-    let finalTranscript = text
+    // Lock in whatever is in the textbox right now — anything captured
+    // during the active session appends to this base.
+    baseTextRef.current = textRef.current || ''
 
     recognition.onresult = (event) => {
+      const finals = []
       let interim = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript
         if (event.results[i].isFinal) {
-          // Append final result
-          finalTranscript = finalTranscript
-            ? `${finalTranscript}, ${transcript.trim()}`
-            : transcript.trim()
-          setText(finalTranscript)
-          onResult(finalTranscript)
+          finals.push(transcript)
         } else {
-          interim = transcript
+          interim += transcript + ' '
         }
       }
+      // Drop final fragments that are a prefix of a later final — fixes
+      // the cumulative-final duplication bug on Android Chrome.
+      const deduped = dedupeFinals(finals)
+      const sessionText = [...deduped, interim].map((s) => s.trim()).filter(Boolean).join(' ')
+      const combined = [baseTextRef.current, sessionText].filter(Boolean).join(' ')
+      commitText(combined)
     }
 
     recognition.onerror = (event) => {
-      // Don't stop for 'no-speech' — just keep listening
+      // 'no-speech' just means a silent stretch — keep the session alive,
+      // the engine will resume on the next utterance.
       if (event.error === 'no-speech') return
       const message = event.error in ERROR_MESSAGES
         ? ERROR_MESSAGES[event.error]
@@ -75,9 +134,12 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
     }
 
     recognition.onend = () => {
-      // If the session was killed by silence but the user still wants to listen, restart.
-      // Use a ref read to avoid stale closure — recognitionRef is only set while active.
+      // Recognition self-ended (silence timeout) but the user still wants
+      // to listen → restart. Lock in current text as the new base so
+      // event.results from the new session don't double-count what's
+      // already in the textbox.
       if (recognitionRef.current === recognition) {
+        baseTextRef.current = textRef.current || ''
         try {
           recognition.start()
         } catch (e) {
@@ -109,8 +171,10 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
   }
 
   function handleTextChange(e) {
-    setText(e.target.value)
-    onResult(e.target.value)
+    const next = e.target.value
+    setText(next)
+    textRef.current = next
+    onResult(next)
   }
 
   return (
@@ -121,8 +185,8 @@ export default function VoiceInput({ onResult, placeholder = 'Tap the mic or typ
           aria-label={label}
           value={text}
           onChange={handleTextChange}
-          className="w-full p-3 pr-16 rounded-xl bg-white/60 border border-ruhi-earth/40
-                     focus:border-ruhi-deep resize-none h-20"
+          className={`w-full p-3 pr-16 rounded-xl bg-white/60 border border-ruhi-earth/40
+                     focus:border-ruhi-deep resize-none ${tall ? 'min-h-[180px]' : 'h-20'}`}
         />
         <button
           onClick={listening ? stopListening : startListening}
