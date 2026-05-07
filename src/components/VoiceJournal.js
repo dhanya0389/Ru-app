@@ -101,6 +101,7 @@ export default function VoiceJournal({ phase, energy, onClose, onSaved }) {
                 placeholder="e.g. tired but focused, craving warmth, slept well..."
                 initialValue={note}
                 onResult={(text) => setNote(text)}
+                tall
               />
               <button
                 onClick={handleSave}
