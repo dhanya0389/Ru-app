@@ -2,6 +2,7 @@ import './globals.css'
 import ThemeLoader from '@/components/ThemeLoader'
 import ThemePicker from '@/components/ThemePicker'
 import Footer from '@/components/Footer'
+import AuthProvider from '@/components/AuthProvider'
 import { Analytics } from '@vercel/analytics/next'
 
 // PWA + iOS app-like behavior:
@@ -43,11 +44,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="font-sans min-h-screen bg-ruhi-cream flex flex-col">
-        <ThemeLoader />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <ThemePicker />
-        <Analytics />
+        <AuthProvider>
+          <ThemeLoader />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <ThemePicker />
+          <Analytics />
+        </AuthProvider>
       </body>
     </html>
   )
