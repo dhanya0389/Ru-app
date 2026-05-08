@@ -103,14 +103,33 @@ Apply to all three environments (Production, Preview, Development).
 
 ---
 
-## 6. Once you're done
+## 6. Run the schema migration (PR #30)
+
+PR #30 ships `supabase/migrations/0001_init.sql` — schema + row-level
+security for `profiles`, `journals`, `weekly_plans`, `pantry`. Run it
+once against your Supabase project:
+
+1. Supabase dashboard → **SQL Editor** → **New query**
+2. Paste the entire contents of `supabase/migrations/0001_init.sql`
+3. Click **Run**
+
+The migration is idempotent — re-running it on a project that already
+has the tables/policies is safe. If you ever wipe your local Supabase
+project and recreate it, just paste the same file again.
+
+To sanity-check that RLS is on:
+
+- Dashboard → **Authentication** → **Policies** — you should see four
+  policies per table (select / insert / update / delete), each scoped
+  to `auth.uid() = user_id`.
+- Dashboard → **Table Editor** → pick any table → the lock icon next to
+  the table name should be filled (RLS enabled).
+
+## 7. Once you're done
 
 Send me:
-- Confirmation that steps 1–5 are done
+- Confirmation that steps 1–6 are done
 - (You don't need to send the URL or keys — they're in your env vars)
-
-I'll start PR #28 (Auth swap + database schema) once you've completed this
-setup. PR #27 (journal redesign) is independent and continues in parallel.
 
 ---
 

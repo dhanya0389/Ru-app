@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { isOnboardingComplete, getProfile, clearProfile } from '@/lib/storage'
 import { getWeeklyPlan, clearWeeklyPlan } from '@/lib/weeklyPlan'
 import { clearEntries as clearJournal } from '@/lib/journal'
+import { useProfileSync } from '@/hooks/useProfileSync'
 import Landing from '@/components/Landing'
 import Onboarding from '@/components/Onboarding'
 import TransitionScreen from '@/components/TransitionScreen'
@@ -31,7 +32,16 @@ export default function Home() {
   // surface launched it — Daily Check-in cards vs. Weekly recipe view).
   const [sourcesReturnTo, setSourcesReturnTo] = useState('checkin')
 
+  // Reconcile local profile with the user's cloud row whenever auth
+  // changes. `synced` flips true after the initial pull (or immediately
+  // for unauthenticated sessions) and again after each subsequent sign-in
+  // settles, so the routing effect below can re-evaluate against the
+  // post-sync local state (cloud-wins overwrite may have flipped
+  // isOnboardingComplete from false to true).
+  const { synced } = useProfileSync()
+
   useEffect(() => {
+    if (!synced) return
     if (!isOnboardingComplete()) {
       setScreen('landing')
       return
@@ -45,8 +55,16 @@ export default function Home() {
     const today = todayLocalISO()
     const lastDay = plan?.days?.[plan.days.length - 1]?.date
     const hasCurrentPlan = plan && plan.weekOf <= today && lastDay >= today
-    setScreen(hasCurrentPlan ? 'weekly' : 'checkin')
-  }, [])
+    setScreen((current) => {
+      // Only auto-route when we're still in 'loading' or on 'landing' —
+      // mid-session screens (pantry editor, journal, etc.) shouldn't yank
+      // the user away because a re-sync settled.
+      if (current === 'loading' || current === 'landing') {
+        return hasCurrentPlan ? 'weekly' : 'checkin'
+      }
+      return current
+    })
+  }, [synced])
 
   // Centralized navigation entrypoint shared with NavMenu.
   // target: 'today' | 'welcome' | 'reset' | { type: 'edit', step: number }
