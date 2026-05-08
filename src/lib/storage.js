@@ -1,13 +1,62 @@
-// localStorage wrapper for Ruhi user data
+// localStorage wrapper for Ruhi user data.
+//
+// PR #30 added an opt-in cloud mirror for the profile: when a Supabase
+// auth session is active, useProfileSync calls setActiveUserId() to wire
+// the user's id in here, and every saveProfile() best-effort upserts to
+// Supabase in addition to writing localStorage. Anonymous users (no
+// active id) keep working with localStorage only.
+//
+// Cloud persistence for the other surfaces (journal, weekly_plans,
+// pantry) lands in PR #32 using the same setActiveUserId pattern.
 
 const STORAGE_KEY = 'ruhi_profile'
 const PANTRY_KEY = 'ruhi_pantry'
+
+let activeUserId = null
+
+// Wire a Supabase user id so saveProfile mirrors writes to the cloud.
+// Pass null on sign-out to drop back to local-only writes (localStorage
+// is intentionally NOT cleared — anonymous use after sign-out continues
+// per the locked Phase 2 design decision).
+export function setActiveUserId(userId) {
+  activeUserId = userId || null
+}
+
+// Read-only accessor used by useProfileSync's reconcile path so it can
+// avoid mirroring back the cloud blob it just pulled.
+export function getActiveUserId() {
+  return activeUserId
+}
+
+// Overwrite the entire local profile blob without firing the cloud
+// mirror. Used by useProfileSync after pulling the authoritative cloud
+// row so the local store matches without round-tripping back to Supabase.
+export function replaceLocalProfile(data) {
+  if (typeof window === 'undefined') return
+  if (data == null) {
+    localStorage.removeItem(STORAGE_KEY)
+    return
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
 
 export function saveProfile(data) {
   if (typeof window === 'undefined') return
   const existing = getProfile()
   const merged = { ...existing, ...data }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+  if (activeUserId) {
+    // Best-effort cloud mirror. Dynamic import keeps the storage layer
+    // free of a hard Supabase dependency for anonymous users (the cloud
+    // module isn't pulled into the bundle until the first signed-in save).
+    import('./cloudProfile')
+      .then(({ saveProfileToCloud }) =>
+        saveProfileToCloud(activeUserId, merged).catch((err) =>
+          console.warn('[storage] cloud profile save failed:', err.message)
+        )
+      )
+      .catch((err) => console.warn('[storage] cloudProfile import failed:', err.message))
+  }
   return merged
 }
 
