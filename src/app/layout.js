@@ -2,7 +2,6 @@ import './globals.css'
 import ThemeLoader from '@/components/ThemeLoader'
 import ThemePicker from '@/components/ThemePicker'
 import Footer from '@/components/Footer'
-import AuthProvider from '@/components/AuthProvider'
 import { Analytics } from '@vercel/analytics/next'
 
 // PWA + iOS app-like behavior:
@@ -44,13 +43,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="font-sans min-h-screen bg-ruhi-cream flex flex-col">
-        <AuthProvider>
-          <ThemeLoader />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <ThemePicker />
-          <Analytics />
-        </AuthProvider>
+        {/* No SessionProvider wrapper — Supabase Auth (PR #28) is a
+            singleton client subscribed to via useSession in each
+            component that needs auth state. No context needed. */}
+        <ThemeLoader />
+        <main className="flex-1">{children}</main>
+        <Footer />
+        <ThemePicker />
+        <Analytics />
       </body>
     </html>
   )
