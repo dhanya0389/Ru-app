@@ -117,6 +117,12 @@ The migration is idempotent — re-running it on a project that already
 has the tables/policies is safe. If you ever wipe your local Supabase
 project and recreate it, just paste the same file again.
 
+> **If you ran an earlier version of this migration** that pre-dated the
+> `GRANT` block (PR #30 original), the live project will throw
+> `permission denied for table profiles` (HTTP 403) when a signed-in
+> user tries to sync. Re-running the migration is the fix — the new
+> `grant` statements are at the bottom and don't touch any data.
+
 To sanity-check that RLS is on:
 
 - Dashboard → **Authentication** → **Policies** — you should see four
