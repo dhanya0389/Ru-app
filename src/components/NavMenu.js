@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useSession, signIn, signOut } from '@/hooks/useSession'
+import { useSession, signIn, signOut, deleteAccount } from '@/hooks/useSession'
 
 const PROFILE_SECTIONS = [
   { step: 1, label: 'Life stage' },
@@ -47,6 +47,13 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
   const menuRef = useRef(null)
   const [view, setView] = useState('main')
   const [confirmingReset, setConfirmingReset] = useState(false)
+  // Delete-my-data flow (PR #32). Two-state: confirming the prompt, then
+  // the in-flight 'deleting' state while the API call runs so the button
+  // can't be double-tapped. `deleteError` surfaces any failure inline
+  // instead of via alert() — keeps the menu self-contained.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
   // Supabase Auth session (PR #28 swap from Auth.js). `status` is
   // 'loading' | 'authenticated' | 'unauthenticated'. The hook normalizes
   // Supabase's user_metadata shape into {id, email, name, image} so this
@@ -59,6 +66,8 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false)
         setConfirmingReset(false)
+        setConfirmingDelete(false)
+        setDeleteError(null)
       }
     }
     if (open) {
@@ -77,12 +86,29 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
     if (!open) {
       setView('main')
       setConfirmingReset(false)
+      setConfirmingDelete(false)
+      setDeleteError(null)
     }
   }, [open])
 
   function handleConfirmReset() {
     setConfirmingReset(false)
     onNavigate('reset')
+  }
+
+  async function handleConfirmDelete() {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteAccount()
+      // Drop the user back at the landing screen. Reload (not router push)
+      // so every cached module re-initializes from scratch with no session.
+      window.location.href = '/'
+    } catch (err) {
+      console.error('[nav] delete account failed:', err)
+      setDeleteError(err?.message || 'Something went wrong. Try again?')
+      setDeleting(false)
+    }
   }
 
   return (
@@ -182,6 +208,62 @@ export default function NavMenu({ open, setOpen, onNavigate }) {
                   label="Reset everything"
                   destructive
                 />
+              )}
+
+              {/* Delete my data — only surfaced to signed-in users since
+                  there's nothing in the cloud to delete for anonymous
+                  visitors. Sits below Reset because it's the nuclear
+                  option (wipes cloud account, not just this device). */}
+              {status === 'authenticated' && (
+                <>
+                  {confirmingDelete ? (
+                    <div className="px-3 py-2">
+                      <p className="text-xs text-ruhi-deep mb-1.5 leading-snug">
+                        Delete your Ruhi account?
+                      </p>
+                      <p className="text-[11px] text-ruhi-earth/80 mb-2 leading-snug">
+                        Permanently removes your account and all your data from Ruhi&apos;s servers. This can&apos;t be undone.
+                      </p>
+                      {deleteError && (
+                        <p
+                          role="alert"
+                          className="text-[11px] text-red-700 mb-2 leading-snug"
+                        >
+                          {deleteError}
+                        </p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setConfirmingDelete(false)
+                            setDeleteError(null)
+                          }}
+                          disabled={deleting}
+                          className="flex-1 text-xs py-1.5 rounded-full border border-ruhi-earth/40
+                                     text-ruhi-earth hover:bg-white/60 transition-colors
+                                     disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleConfirmDelete}
+                          disabled={deleting}
+                          className="flex-1 text-xs py-1.5 rounded-full bg-red-700 text-ruhi-cream
+                                     hover:bg-red-800 transition-colors
+                                     disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {deleting ? 'Deleting…' : 'Yes, delete'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <MenuItem
+                      onClick={() => setConfirmingDelete(true)}
+                      label="Delete my data"
+                      destructive
+                    />
+                  )}
+                </>
               )}
             </>
           )}

@@ -102,3 +102,56 @@ export async function signOut() {
   if (!isSupabaseConfigured()) return
   await supabase.auth.signOut()
 }
+
+// Permanently delete the signed-in user's account + all their data.
+// Calls /api/delete-account (server-side, uses Supabase service_role
+// to delete the auth.users row, which cascades to every data table).
+// Then wipes localStorage and signs the user out so the next render
+// drops them back to the landing screen as a fresh anonymous visitor.
+//
+// Throws on failure so the caller can surface an error in the UI.
+// Caller is responsible for the confirmation dialog — this function
+// just executes; it doesn't ask "are you sure?".
+export async function deleteAccount() {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  // Need the current access token to authenticate to the API route. We
+  // can't rely on cookies — Supabase's browser client stores the session
+  // in localStorage by default, and Next.js API routes don't see it.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('No active session.')
+  }
+
+  const res = await fetch('/api/delete-account', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${session.access_token}` },
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.message || body.error || `Delete failed (${res.status}).`)
+  }
+
+  // Wipe local state. Import dynamically to avoid pulling these into
+  // the bundle for every render — delete is a rare-path action.
+  const [
+    { clearProfile, clearPantry },
+    { clearEntries: clearJournal },
+    { clearWeeklyPlan },
+  ] = await Promise.all([
+    import('@/lib/storage'),
+    import('@/lib/journal'),
+    import('@/lib/weeklyPlan'),
+  ])
+  clearProfile()
+  clearPantry()
+  clearJournal()
+  clearWeeklyPlan()
+
+  // Sign the (now-deleted) user out so the auth state listener
+  // transitions to 'unauthenticated' and the app re-renders accordingly.
+  await supabase.auth.signOut()
+}

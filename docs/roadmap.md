@@ -9,12 +9,14 @@ Treat this as the canonical "what's next" list. Update via PR.
 
 - ✅ **PR #28** — Auth.js → Supabase Auth swap. Sign-in works on localhost + production. Identity layer only; no data persistence yet.
 - 📋 **PR #29** — This doc (roadmap.md). Just paperwork.
-- 🔜 **PR #30** — Database schema + RLS + profile sync. The slice that actually delivers cross-device sync. Each RLS policy explained in plain English in the PR description. **Auto-import on first sign-in:** if user has localStorage data and no cloud row, silently upload local → cloud. No prompt, no friction.
-- 🔜 **PR #31** — Sign-in discoverability UX (Option A + C from design pass):
+- ✅ **PR #30** — Database schema + RLS + profile sync. The slice that actually delivers cross-device sync. Each RLS policy explained in plain English in the PR description. **Auto-import on first sign-in:** if user has localStorage data and no cloud row, silently upload local → cloud. No prompt, no friction.
+- 📋 **PR #31** — Hotfix: grant authenticated role table privileges. GitHub auto-numbered this — bumped the rest of the sequence below by one. Adds explicit `GRANT` block to `0001_init.sql` so signed-in users don't get `permission denied for table profiles`.
+- 🔜 **PR #32** — `/privacy` page + footer link + "Delete my data" button in NavMenu (server-side via `SUPABASE_SERVICE_ROLE_KEY`). Also seeds `docs/email-setup.md` for `hello@tryruhi.ai` forwarding.
+- 🔜 **PR #33** — Sign-in discoverability UX (Option A + C from design pass):
   - **A — Conditional banner**: when user has saved local content (journal entry, plan, pantry) and isn't signed in, show a thin dismissible banner near top: *"Save your data across devices — Sign in with Google"*
   - **C — Footer link**: small *"Sign in to sync"* link in the existing site footer next to *"Got feedback?"*. Always visible, low friction.
-- 🔜 **PR #32** — Migrate journal + weekly_plans + pantry surfaces to use `lib/storage.js` cloud abstraction (same pattern as profile in PR #30).
-- 🔜 **PR #33** — Cleanup: remove unused env-var docs, drop the AUTH_* placeholders from `.env.example` if any survive.
+- 🔜 **PR #34** — Migrate journal + weekly_plans + pantry surfaces to use `lib/storage.js` cloud abstraction (same pattern as profile in PR #30). When this ships, extend the delete-my-data handler in `useSession.deleteAccount` to mention the additional surfaces — the cascade already wipes them on the server, no extra API work.
+- 🔜 **PR #35** — Cleanup: remove unused env-var docs, drop the AUTH_* placeholders from `.env.example` if any survive.
 
 ## Locked design decisions for Phase 2 (do NOT re-litigate)
 

@@ -35,6 +35,17 @@ export default function Footer() {
         </a>
         ? We&apos;re listening.
       </span>
+      {/* Privacy link sits next to feedback so users have a one-tap path to
+          understand what we do with their data. Same row, low-key separator,
+          keeps the footer to one line on most viewports. */}
+      <span aria-hidden="true" className="text-ruhi-earth/40">·</span>
+      <a
+        href="/privacy"
+        className="font-medium underline underline-offset-2 decoration-ruhi-deep/50
+                   hover:decoration-ruhi-deep transition-colors"
+      >
+        Privacy
+      </a>
     </footer>
   )
 }
