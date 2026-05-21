@@ -213,3 +213,23 @@ create policy "pantry_update_own"
 create policy "pantry_delete_own"
   on public.pantry for delete
   using (auth.uid() = user_id);
+
+-- ── Role grants ───────────────────────────────────────────────────
+-- RLS gates which ROWS a user can touch, but the `authenticated` role
+-- also needs Postgres-level GRANTs to be allowed to issue SELECT /
+-- INSERT / UPDATE / DELETE against the tables in the first place. New
+-- Supabase projects sometimes ship without the default privileges that
+-- would auto-grant on create — the symptom is a "permission denied
+-- for table <name>" 403 from PostgREST when a signed-in user tries to
+-- read or write. These grants are the explicit fix.
+--
+-- We do NOT grant anon any privileges: anonymous users in Ruhi go
+-- through localStorage, never PostgREST, so they have no business
+-- talking to these tables. Restricting anon also means a leaked or
+-- misused anon key can't enumerate or write data — RLS would block
+-- per-row access, but the GRANT layer rejects the request earlier.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.profiles      to authenticated;
+grant select, insert, update, delete on public.journals      to authenticated;
+grant select, insert, update, delete on public.weekly_plans  to authenticated;
+grant select, insert, update, delete on public.pantry        to authenticated;
