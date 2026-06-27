@@ -5,7 +5,18 @@ import { useRef, useState } from 'react'
 // Capped at 5 photos per upload — covers fridge-from-multiple-angles +
 // pantry shelf without runaway token cost. Server enforces the same cap.
 const MAX_IMAGES = 5
-const MAX_FILE_SIZE = 5 * 1024 * 1024  // 5MB raw per image
+// Picker accepts large raw photos because modern phones produce ~4-8 MB
+// HEIC/JPEG files and we don't want the user to manually resize. Each
+// photo is compressed in the browser to ~300-700 KB JPEG before upload
+// (see compressImage below) so the server payload stays well under
+// Vercel's 4.5 MB per-request limit even with 5 photos.
+const MAX_FILE_SIZE = 15 * 1024 * 1024  // 15 MB raw per image (pre-compression)
+// Target dimensions for client-side compression. 1600 px on the longest
+// edge keeps every label readable for the vision model and gets a
+// typical 4 MB phone photo down to ~400 KB. JPEG q=0.82 is the sweet
+// spot — q=0.9 doubles file size, q=0.7 starts visibly degrading text.
+const COMPRESS_MAX_DIM = 1600
+const COMPRESS_QUALITY = 0.82
 
 /**
  * Camera/photo button that:
@@ -65,7 +76,7 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
         return
       }
       if (f.size > MAX_FILE_SIZE) {
-        setErrorMsg(`"${f.name}" is over 5MB. Try a smaller photo.`)
+        setErrorMsg(`"${f.name}" is over 15 MB. Try a smaller photo.`)
         setStage('error')
         return
       }
@@ -81,12 +92,23 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
     setErrorMsg(null)
 
     try {
-      // Encode all images in parallel — fastest path for multi-image upload.
+      // Compress each picked file in the browser before encoding. This is
+      // the load-bearing fix for the HTTP 413 errors users were hitting
+      // when uploading multiple full-resolution phone photos — base64 of
+      // a single 4 MB photo blew past Vercel's 4.5 MB serverless request
+      // body cap on its own; 5 of them were never going to fit. After
+      // compressImage every photo lands as a ~300-700 KB JPEG, comfortably
+      // under both the per-image and total-payload limits the server now
+      // enforces. compressImage also normalizes every input to JPEG, which
+      // incidentally handles HEIC photos straight from iPhone cameras.
       const encoded = await Promise.all(
-        fileList.map(async (f) => ({
-          base64: await fileToBase64(f),
-          mediaType: f.type,
-        }))
+        fileList.map(async (f) => {
+          const compressed = await compressImage(f)
+          return {
+            base64: await blobToBase64(compressed),
+            mediaType: 'image/jpeg',
+          }
+        })
       )
 
       const res = await fetch('/api/parse-pantry-image', {
@@ -297,7 +319,51 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
   )
 }
 
-function fileToBase64(file) {
+// Browser-side image compression. Decodes via createImageBitmap (handles
+// JPEG/PNG/WebP/GIF and HEIC where the browser supports it natively),
+// draws onto a downscaled canvas, and re-encodes as JPEG. Output is
+// typically 5-10× smaller than the source for phone photos because
+// modern cameras shoot at ~12-50 MP and we only need ~2 MP for the
+// vision model to read labels reliably.
+//
+// Failure mode: if the browser can't decode the source (rare — usually
+// only old-format HEIC on non-iOS browsers), the returned promise rejects
+// and the caller surfaces the error to the user. We deliberately do NOT
+// fall back to the uncompressed file: that would just re-introduce the
+// 413 errors we're fixing.
+async function compressImage(
+  file,
+  { maxDim = COMPRESS_MAX_DIM, quality = COMPRESS_QUALITY } = {}
+) {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const { width: srcW, height: srcH } = bitmap
+    const scale = Math.min(1, maxDim / Math.max(srcW, srcH))
+    const dstW = Math.max(1, Math.round(srcW * scale))
+    const dstH = Math.max(1, Math.round(srcH * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = dstW
+    canvas.height = dstH
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(bitmap, 0, 0, dstW, dstH)
+
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('canvas toBlob returned null'))),
+        'image/jpeg',
+        quality
+      )
+    })
+  } finally {
+    // createImageBitmap allocates a GPU-backed bitmap; close it explicitly
+    // so memory is released even if the user uploads many photos in a
+    // row without leaving the screen.
+    bitmap.close?.()
+  }
+}
+
+function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -311,7 +377,7 @@ function fileToBase64(file) {
       resolve(comma >= 0 ? result.slice(comma + 1) : result)
     }
     reader.onerror = () => reject(reader.error || new Error('FileReader error'))
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(blob)
   })
 }
 
