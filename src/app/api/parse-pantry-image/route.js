@@ -2,10 +2,16 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
 
-// Sanity caps. Anthropic's vision API accepts up to ~5MB per image; we send
-// base64 from the client so the encoded payload is ~33% larger than raw bytes.
-// Keep the raw under 4MB to stay under the JSON body limit comfortably.
-const MAX_BASE64_LENGTH = 6_000_000  // ~4.5MB raw
+// Sanity caps. The client compresses each image to a ~300-700 KB JPEG
+// before upload (see compressImage in PantryImageUpload.js) so these
+// limits assume post-compression payloads. The PER-IMAGE cap is a
+// generous safety net in case compression somehow produces an oversized
+// blob (e.g., a multi-megapixel photo of pure noise that doesn't shrink).
+// The TOTAL cap is the load-bearing one — Vercel rejects serverless
+// request bodies above ~4.5 MB, so the sum of all base64 payloads must
+// stay below that across however many images the user uploads.
+const MAX_BASE64_LENGTH = 1_600_000        // ~1.2 MB raw per image (post-compression)
+const MAX_TOTAL_BASE64_LENGTH = 4_000_000  // ~3 MB raw total across all images
 const ALLOWED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 // Cap at 5 photos per upload — covers fridge-from-multiple-angles or pantry +
 // fridge in one go without runaway token costs (~$0.05/upload at 5 images).
@@ -48,8 +54,12 @@ export async function POST(request) {
     )
   }
 
-  // Validate each image; coerce media type to a safe default.
+  // Validate each image; coerce media type to a safe default. Track total
+  // payload size so we can reject combos that would blow past Vercel's
+  // request body cap even when each individual image is under the per-
+  // image limit.
   const sanitized = []
+  let totalBase64Length = 0
   for (const img of images) {
     const base64 = typeof img?.base64 === 'string' ? img.base64 : null
     if (!base64) {
@@ -57,7 +67,20 @@ export async function POST(request) {
     }
     if (base64.length > MAX_BASE64_LENGTH) {
       return Response.json(
-        { error: 'image_too_large', message: 'One of your photos is too large. Try smaller files.' },
+        {
+          error: 'image_too_large',
+          message: 'One of your photos is too large even after compression. Try uploading one at a time.',
+        },
+        { status: 413 }
+      )
+    }
+    totalBase64Length += base64.length
+    if (totalBase64Length > MAX_TOTAL_BASE64_LENGTH) {
+      return Response.json(
+        {
+          error: 'payload_too_large',
+          message: 'Too many photos at once. Try uploading fewer at a time.',
+        },
         { status: 413 }
       )
     }
