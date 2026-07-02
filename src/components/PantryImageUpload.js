@@ -20,7 +20,7 @@ const COMPRESS_QUALITY = 0.82
 
 /**
  * Camera/photo button that:
- *   1. opens the file picker (mobile uses camera with capture="environment";
+ *   1. opens the native photo picker (both gallery + camera on mobile;
  *      `multiple` lets the user pick up to MAX_IMAGES photos at once)
  *   2. encodes each chosen image to base64 in parallel
  *   3. POSTs the array to /api/parse-pantry-image (single multimodal call —
@@ -145,11 +145,18 @@ export default function PantryImageUpload({ onConfirm, compact = false }) {
 
   return (
     <>
+      {/* Native file input — no `capture` attribute so mobile browsers
+          show the full picker (gallery + take-new-photo) instead of
+          jumping straight into the camera. capture="environment" was
+          removed because on some mobile browsers (notably modern Chrome
+          on Android and iOS Safari in newer versions) it forces the
+          camera app and hides the gallery option entirely, which
+          silently broke the "pick 5 photos from your camera roll"
+          flow the UI advertises. */}
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         onChange={handleFile}
         className="sr-only"
